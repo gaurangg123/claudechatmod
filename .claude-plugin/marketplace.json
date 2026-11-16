@@ -1,0 +1,11 @@
+{
+  "name": "claudechatmod",
+  "owner": { "name": "gaurangg123" },
+  "plugins": [
+    {
+      "name": "neon-miami",
+      "source": "./",
+      "description": "Neon Miami: a pixel-art slideshow behind the chat, a neon text palette and a terminal skyline for Claude Code"
+    }
+  ]
+}
