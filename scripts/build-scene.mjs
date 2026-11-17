@@ -104,6 +104,15 @@ class Layer {
   }
 }
 
+// Draws into layers of its own and adds them to L as one group, so a CSS
+// animation (the class) can move the whole thing: a car, a cloud, a helicopter.
+function moving(L, cls, draw) {
+  const a = new Layer()
+  const g = new Layer('filter="url(#glow)"')
+  draw(a, g)
+  L.raw(`<g class="${cls}">${a.svg()}${g.svg()}</g>`)
+}
+
 // A sparse bitmap: drawn into a layer at a scale, runs merged, with an
 // optional neon outline around every filled pixel.
 class Grid {
@@ -207,11 +216,11 @@ const textWidth = (str, s, font = FONT3) => str.length * ((font === FONT3 ? 4 : 
 function sky(L, W, top, HY) {
   const stops = [
     [0, C.bg],
-    [0.45, '#0b0414'],
-    [0.7, '#1c0832'],
-    [0.84, '#3a0d4d'],
-    [0.94, '#6b1757'],
-    [1, '#a1285c'],
+    [0.4, '#1a0a33'],
+    [0.66, '#34105a'],
+    [0.82, '#5a1868'],
+    [0.93, '#9a2a6e'],
+    [1, '#d13e6c'],
   ]
   for (let y = top; y < HY; y += 2) {
     L.px(fill(ramp(stops, (y - top) / (HY - top))), 0, y, W, 2)
@@ -241,7 +250,7 @@ function stars(L, rand, W, H, count, avoid) {
     const big = rand() < 0.14
     const color = colors[Math.floor(rand() * colors.length)]
     const op = 0.25 + rand() * 0.55
-    const tw = rand() < 0.14 ? ` class="tw${1 + Math.floor(rand() * 3)}"` : ''
+    const tw = rand() < 0.35 ? ` class="tw${1 + Math.floor(rand() * 3)}"` : ''
     const s = big ? 1 : 0.5
     L.px(`${fill(color, Math.round(op * 10) / 10)}${tw}`, x, y, s, s)
     if (big && rand() < 0.5) {
@@ -665,14 +674,14 @@ function defs(W, H, extra = '') {
 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <radialGradient id="sunGlow"><stop offset="0" stop-color="${C.pink}" stop-opacity="0.5"/><stop offset="0.5" stop-color="${C.magenta}" stop-opacity="0.18"/><stop offset="1" stop-color="${C.magenta}" stop-opacity="0"/></radialGradient>
 <radialGradient id="screenGlow"><stop offset="0" stop-color="${C.cyan}" stop-opacity="0.22"/><stop offset="1" stop-color="${C.cyan}" stop-opacity="0"/></radialGradient>
-<radialGradient id="calm" cx="0.5" cy="0.42" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.6"/><stop offset="0.65" stop-color="#000" stop-opacity="0.3"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="calm" cx="0.5" cy="0.42" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.32"/><stop offset="0.65" stop-color="#000" stop-opacity="0.12"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
 <linearGradient id="sunText" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${C.yellow}"/><stop offset="0.45" stop-color="${C.sunset}"/><stop offset="1" stop-color="${C.pink}"/></linearGradient>
 <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${C.violet}" stop-opacity="0.3"/><stop offset="0.3" stop-color="${C.pink}" stop-opacity="0.85"/><stop offset="0.5" stop-color="${C.sunset}" stop-opacity="0.9"/><stop offset="0.7" stop-color="${C.pink}" stop-opacity="0.85"/><stop offset="1" stop-color="${C.blue}" stop-opacity="0.3"/></linearGradient>
 <linearGradient id="trailR"><stop offset="0" stop-color="${C.red}" stop-opacity="0"/><stop offset="1" stop-color="${C.red}" stop-opacity="0.85"/></linearGradient>
 <linearGradient id="trailL"><stop offset="0" stop-color="${C.red}" stop-opacity="0.85"/><stop offset="1" stop-color="${C.red}" stop-opacity="0"/></linearGradient>
 <linearGradient id="beamR"><stop offset="0" stop-color="#fff3b0" stop-opacity="0.7"/><stop offset="1" stop-color="#fff3b0" stop-opacity="0"/></linearGradient>
 <linearGradient id="beamL"><stop offset="0" stop-color="#fff3b0" stop-opacity="0"/><stop offset="1" stop-color="#fff3b0" stop-opacity="0.7"/></linearGradient>
-<pattern id="scan" width="4" height="1" patternUnits="userSpaceOnUse"><rect width="4" height="0.32" fill="#000" opacity="0.32"/></pattern>
+<pattern id="scan" width="4" height="1" patternUnits="userSpaceOnUse"><rect width="4" height="0.32" fill="#000" opacity="0.18"/></pattern>
 <pattern id="noise" width="37" height="23" patternUnits="userSpaceOnUse">${noiseTile()}</pattern>
 </defs>`
 }
@@ -705,8 +714,21 @@ const STYLE = `<style>
 .sl{animation:sl 10s steps(20,end) infinite}
 .ra{animation:bl .24s steps(1,end) infinite}
 .rb{animation:bl .24s steps(1,end) infinite .12s}
-.r1{animation:bl .8s steps(1,end) infinite}
-.r2{animation:bl .8s steps(1,end) infinite .4s}
+@keyframes dr{from{transform:translateX(-360px)}to{transform:translateX(360px)}}
+@keyframes dl{from{transform:translateX(360px)}to{transform:translateX(-360px)}}
+.d1{animation:dr 9s linear infinite}
+.d2{animation:dl 11s linear infinite -4s}
+.d3{animation:dl 14s linear infinite -9s}
+.d4{animation:dr 7s linear infinite -2s}
+@keyframes fa{from{transform:translateY(-12px)}to{transform:translateY(12px)}}
+.f1{animation:fa .7s linear infinite}
+.f2{animation:fa .9s linear infinite -.4s}
+@keyframes dt{from{transform:translateX(-40px)}to{transform:translateX(60px)}}
+.dt{animation:dt 45s ease-in-out infinite alternate}
+@keyframes fy{from{transform:translateX(140px)}to{transform:translateX(-260px)}}
+.fy{animation:fy 28s linear infinite}
+@keyframes pu{0%,100%{opacity:.7}50%{opacity:1}}
+.pu{animation:pu 4s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.gl{opacity:0}}
 </style>`
 
@@ -740,7 +762,7 @@ function wide({ hud: withHud = true } = {}) {
 
   bg.px(fill(C.bg), 0, 0, W, H)
   sky(bg, W, 56, HY)
-  bg.raw(`<ellipse cx="160" cy="${HY}" rx="70" ry="44" fill="url(#sunGlow)"/>`)
+  bg.raw(`<ellipse cx="160" cy="${HY}" rx="70" ry="44" fill="url(#sunGlow)" class="pu"/>`)
 
   const code = withHud ? codeWindow(hud, hudNeon, 8, 8, 0.5) : [8, 8, 58, 36]
   const board = withHud ? billboard(hud, hudNeon, 262, 9, 80) : [222, 9, 80, 34]
@@ -789,9 +811,9 @@ function wide({ hud: withHud = true } = {}) {
   }
   water(art, W, HY, 20, 160, refl)
   causeway(art, neon, W, 154, 22)
-  car(art, neon, 86, 155.5, 0.7, C.pink, 1, rand)
-  car(art, neon, 214, 155.5, 0.7, C.cyan, -1, rand)
-  car(art, neon, 150, 155.5, 0.7, C.purple, -1, rand)
+  moving(art, 'd1', (a, g) => car(a, g, 86, 155.5, 0.7, C.pink, 1, rand))
+  moving(art, 'd2', (a, g) => car(a, g, 214, 155.5, 0.7, C.cyan, -1, rand))
+  moving(art, 'd3', (a, g) => car(a, g, 150, 155.5, 0.7, C.purple, -1, rand))
 
   palm(front, frontNeon, [12, 172], [28, 72], C.pink, rand)
   palm(front, frontNeon, [308, 172], [291, 78], C.teal, rand)
@@ -821,7 +843,7 @@ function tall() {
 
   bg.px(fill(C.bg), 0, 0, W, H)
   sky(bg, W, 170, HY)
-  bg.raw(`<ellipse cx="90" cy="${HY}" rx="56" ry="40" fill="url(#sunGlow)"/>`)
+  bg.raw(`<ellipse cx="90" cy="${HY}" rx="56" ry="40" fill="url(#sunGlow)" class="pu"/>`)
 
   const board = billboard(hud, hudNeon, 90, 14, 80)
   stars(bg, rand, W, 230, 150, [board, [60, 240, 60, 30]])
@@ -857,8 +879,8 @@ function tall() {
   }
   water(art, W, HY, 22, 90, refl)
   causeway(art, neon, W, 279, 24)
-  car(art, neon, 30, 280.5, 0.7, C.pink, 1, rand)
-  car(art, neon, 116, 280.5, 0.7, C.cyan, -1, rand)
+  moving(art, 'd1', (a, g) => car(a, g, 30, 280.5, 0.7, C.pink, 1, rand))
+  moving(art, 'd2', (a, g) => car(a, g, 116, 280.5, 0.7, C.cyan, -1, rand))
 
   palm(front, frontNeon, [14, 300], [26, 216], C.pink, rand, 0.75)
   palm(front, frontNeon, [166, 300], [154, 222], C.teal, rand, 0.75)
@@ -1006,7 +1028,7 @@ function rainfall(L, rand, W, H, count) {
   for (let i = 0; i < count; i++) {
     const x = Math.floor(rand() * W * 2) / 2
     const y = Math.floor(rand() * H)
-    L.px(`${fill('#8fb8ff', op1(0.1 + rand() * 0.18))} class="r${1 + (i % 2)}"`, x, y, 0.25, 2 + Math.floor(rand() * 4))
+    L.px(`${fill('#8fb8ff', op1(0.1 + rand() * 0.18))} class="f${1 + (i % 2)}"`, x, y, 0.25, 2 + Math.floor(rand() * 4))
   }
 }
 
@@ -1024,7 +1046,7 @@ function cyber(W, H) {
   const hudNeon = new Layer('filter="url(#glow)"')
 
   bg.px(fill(RC.bg), 0, 0, W, H)
-  band(bg, W, 0, HY, [[0, RC.bg], [0.4, '#070d22'], [0.72, '#160c34'], [0.9, '#331046'], [1, '#5a1450']])
+  band(bg, W, 0, HY, [[0, '#070a1a'], [0.4, '#0e1838'], [0.72, '#26124f'], [0.9, '#4e1866'], [1, '#86206e']])
   bg.raw(`<ellipse cx="${num(W / 2)}" cy="${HY}" rx="${num(W * 0.5)}" ry="${num(H * 0.2)}" fill="url(#smog)"/>`)
   dots(bg, rand, [0, 0, W, HY * 0.45], isTall ? 40 : 70, [RC.white, RC.cyan, RC.violet], [0.15, 0.45], 0.15)
 
@@ -1045,7 +1067,10 @@ function cyber(W, H) {
   const lanes = isTall ? [H * 0.42, H * 0.5] : [H * 0.36, H * 0.46]
   for (const [i, y] of lanes.entries()) {
     const dir = i % 2 ? -1 : 1
-    for (const fx of isTall ? [0.12, 0.8] : [0.08, 0.22, 0.74, 0.9]) hoverCar(art, neon, Math.round(W * fx), Math.round(y), dir, i % 2 ? RC.violet : RC.cyan)
+    for (const fx of isTall ? [0.12, 0.8] : [0.08, 0.22, 0.74, 0.9]) {
+      moving(art, dir > 0 ? (fx < 0.5 ? 'd4' : 'd1') : (fx < 0.5 ? 'd2' : 'd3'), (a, g) =>
+        hoverCar(a, g, Math.round(W * fx), Math.round(y), dir, i % 2 ? RC.violet : RC.cyan))
+    }
   }
 
   // the elevated train line
@@ -1118,7 +1143,7 @@ function cyber(W, H) {
 
 // ---- Blocklands: a blocky voxel world, by night or on a sunny day
 const VC = {
-  sky: [[0, '#04050d'], [0.55, '#081030'], [1, '#1a2c60']],
+  sky: [[0, '#070a1c'], [0.55, '#10204e'], [1, '#2c4890']],
   bg: '#04050d', moon: '#e9efff', moonShade: '#b4c2e6', moss: '#2fbf8f', mossHi: '#78f2c0', soil: '#3b2633',
   soilSpeck: '#52344a', stone: '#221f2e', stoneSpeck: '#2f2b40', water: '#0f2a66', waterHi: '#4a8cff',
   wood: '#4a2c1c', woodHi: '#6b4027', pine: '#1b8a6a', pineHi: '#3ddba6', bloom: '#d9438f', bloomHi: '#ff8cc6',
@@ -1174,7 +1199,9 @@ function voxel(W, H, day = false) {
     const clouds = isTall
       ? [[10, 40, 34], [96, 64, 40], [30, 108, 30], [110, 150, 36]]
       : [[18, 22, 40], [92, 40, 48], [168, 16, 36], [214, 58, 44], [60, 74, 30], [282, 92, 30]]
-    for (const [cx, cy, cw] of clouds) cloud(bg, cx, cy, cw)
+    moving(bg, 'dt', a => {
+      for (const [cx, cy, cw] of clouds) cloud(a, cx, cy, cw)
+    })
     for (const [bx, by] of isTall ? [[60, 30], [70, 26], [140, 96]] : [[140, 30], [150, 26], [246, 40], [120, 60]]) {
       art.px(fill('#2a3b5c', 0.8), bx, by, 1, 0.6)
       art.px(fill('#2a3b5c', 0.8), bx + 1, by + 0.6, 1, 0.6)
@@ -1329,7 +1356,7 @@ function voxel(W, H, day = false) {
   const extra =
     `<radialGradient id="moonGlow"><stop offset="0" stop-color="#dfe8ff" stop-opacity="0.22"/><stop offset="1" stop-color="#dfe8ff" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="sunDay"><stop offset="0" stop-color="#fff6b0" stop-opacity="0.6"/><stop offset="1" stop-color="#fff6b0" stop-opacity="0"/></radialGradient>` +
-    `<radialGradient id="calmDay" cx="0.5" cy="0.42" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="calmDay" cx="0.5" cy="0.42" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="warmGlow"><stop offset="0" stop-color="${P.warm}" stop-opacity="0.3"/><stop offset="1" stop-color="${P.warm}" stop-opacity="0"/></radialGradient>` +
     `<pattern id="blk" width="${B}" height="${B}" patternUnits="userSpaceOnUse"><rect width="${B}" height="0.4" fill="#000" opacity="${line}"/>` +
     `<rect width="0.4" height="${B}" fill="#000" opacity="${line}"/><rect x="0.4" y="0.4" width="${B - 0.4}" height="0.4" fill="#fff" opacity="${day ? 0.18 : 0.07}"/></pattern>` +
@@ -1369,7 +1396,7 @@ function ops(W, H) {
   const hudGlow = new Layer('filter="url(#glow)"')
 
   bg.px(fill(OC.bg), 0, 0, W, H)
-  band(bg, W, 0, HY, [[0, OC.bg], [0.5, '#051a0e'], [0.82, '#0f3a22'], [1, '#1e6038']])
+  band(bg, W, 0, HY, [[0, '#03100a'], [0.5, '#0a2c18'], [0.82, '#185a34'], [1, '#2c8a50']])
   bg.raw(`<ellipse cx="${num(W / 2)}" cy="${HY}" rx="${num(W * 0.35)}" ry="${num(H * 0.12)}" fill="url(#cityGlow)"/>`)
   dots(bg, rand, [0, 0, W, HY * 0.6], isTall ? 50 : 80, [OC.white, OC.nv], [0.15, 0.45], 0.12)
 
@@ -1432,8 +1459,8 @@ function ops(W, H) {
     glow.px(`${fill(OC.red)} class="blink"`, mx - 0.1, HY - 47.5, 1, 1)
   }
 
-  // a helicopter and a small drone in the sky
-  {
+  // a helicopter and a small drone, flying across the sky
+  moving(art, 'fy', (art, glow) => {
     const hx = isTall ? W - 70 : W - 120
     const hy = Math.round(H * (isTall ? 0.3 : 0.28))
     art.px(fill(OC.metal), hx, hy, 14, 4)
@@ -1455,7 +1482,7 @@ function ops(W, H) {
     art.px(fill(OC.metalHi), dx - 2, dy - 0.6, 3, 0.4)
     art.px(fill(OC.metalHi), dx + 3, dy - 0.6, 3, 0.4)
     glow.px(`${fill(OC.red)} class="blink"`, dx + 1.6, dy + 1.2, 0.6, 0.6)
-  }
+  })
 
   // HUD: the corner frame, a radar scope, the mission panel and grid coordinates
   corners(hudGlow, W, H, OC.nv)

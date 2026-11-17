@@ -186,7 +186,7 @@ async function applyBackdrop($: EngineInterface, p: NeonMiamiPrefs, scene: Scene
     let result: ThemeResult
     try {
       result = await $.theme.set({
-        backdrop: { scene, glass: { blur: 4, tint: '#07050c', opacity: 0.7 } },
+        backdrop: { scene, glass: { blur: 4, tint: '#07050c', opacity: 0.55 } },
         overrideColorScheme: 'dark',
         colors: palette(scene),
       })
