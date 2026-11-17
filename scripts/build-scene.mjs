@@ -734,7 +734,7 @@ const STYLE = `<style>
 
 function wrap(W, H, body, animated, extraDefs = '', scan = true) {
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W * 12}" height="${H * 12}" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges">` +
     (animated ? STYLE : '') +
     defs(W, H, extraDefs) +
     body +
