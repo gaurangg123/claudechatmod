@@ -350,7 +350,9 @@ export const register: Register = on => {
 
     // The scene fills the whole window: its viewBox scales to the box and is
     // cropped at the sides or top (slice), keeping the skyline on the bottom edge.
-    return <Svg source={source} alt={ALT[name]} />
+    // isInteractive draws it in a sandboxed frame, where its CSS animations run;
+    // without it the app draws a still image.
+    return <Svg source={source} alt={ALT[name]} isInteractive />
   })
 
   // The terminal's skyline band, above the prompt.
