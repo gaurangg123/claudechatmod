@@ -186,7 +186,7 @@ async function applyBackdrop($: EngineInterface, p: NeonMiamiPrefs, scene: Scene
     let result: ThemeResult
     try {
       result = await $.theme.set({
-        backdrop: { scene, glass: { blur: 4, tint: '#07050c', opacity: 0.55 } },
+        backdrop: { scene, glass: { blur: 3, tint: '#07050c', opacity: 0.4 } },
         overrideColorScheme: 'dark',
         colors: palette(scene),
       })
@@ -343,25 +343,14 @@ export const register: Register = on => {
     const name = e.props.scene
     if (!isScene(name) || e.surface === 'terminal') return next(e)
     const p = await readPrefs($)
-    const { Box, Svg } = $.ui.resolve(e)
+    const { Svg } = $.ui.resolve(e)
     const scene = SCENES[name]
     const svg = e.surface === 'mobile' ? scene.tall : scene.wide
     const source = p.motion ? svg : svg.replace(STYLE, '')
 
-    // The scene has a fixed pixel size, which the app shrinks to the window's
-    // width; it sits on the bottom edge, and its sky color fills above it.
-    return (
-      <Box
-        width="100%"
-        height="100%"
-        flexDirection="column"
-        justifyContent="flex-end"
-        overflow="hidden"
-        backgroundColor={scene.sky}
-      >
-        <Svg source={source} alt={ALT[name]} />
-      </Box>
-    )
+    // The scene fills the whole window: its viewBox scales to the box and is
+    // cropped at the sides or top (slice), keeping the skyline on the bottom edge.
+    return <Svg source={source} alt={ALT[name]} />
   })
 
   // The terminal's skyline band, above the prompt.
