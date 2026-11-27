@@ -1,1 +1,4 @@
-*.sh text eol=lf
+# LF everywhere, so generated files and installers are byte-identical on every OS.
+* text=auto eol=lf
+*.png binary
+*.gif binary

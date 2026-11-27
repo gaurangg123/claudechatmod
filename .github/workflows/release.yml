@@ -1,0 +1,39 @@
+name: Release
+
+# Push an annotated tag vX.Y.Z whose version matches .claude-plugin/plugin.json.
+# The tag's message becomes the release notes.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.332
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tag matches plugin.json
+        run: |
+          version=$(node -p "require('./.claude-plugin/plugin.json').version")
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but plugin.json says $version"; exit 1; }
+      - name: Scenes rebuild byte-for-byte
+        run: node dev/build-scene.mjs && git diff --exit-code -- hooks/
+      - run: npm install -g @anthropic-ai/claude-code@${{ env.CLAUDE_CODE_VERSION }}
+      - run: claude plugin validate .
+      - run: claude plugin test .
+      - name: Package
+        run: git archive --format=zip --prefix=shell-party/ -o "shell-party-${GITHUB_REF_NAME#v}.zip" HEAD
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "shell-party-${GITHUB_REF_NAME#v}.zip" --title "Shell Party ${GITHUB_REF_NAME#v}" --notes-from-tag --verify-tag
