@@ -340,7 +340,8 @@ export const register: Register = on => {
     return result
   })
 
-  // A red alert when a test command fails; a passing run clears it.
+  // A red alert when a test command fails; a passing run clears it. If this hook
+  // throws, the catch hands the call on unchanged, so a Bash command is never blocked.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const result = await next(e)
     const command = String(e.command ?? '')
@@ -353,7 +354,7 @@ export const register: Register = on => {
       }
     }
     return result
-  })
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'party-shell' }, async ($, e) => {
     const [part, arg] = e.args.trim().toLowerCase().split(/\s+/)

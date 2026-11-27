@@ -1,6 +1,7 @@
 {
   "name": "claudechatmod",
-  "owner": { "name": "gaurangg123" },
+  "description": "Shell Party: an animated pixel-art theme for Claude Code",
+  "owner": { "name": "gaurangg123", "url": "https://github.com/gaurangg123" },
   "plugins": [
     {
       "name": "shell-party",
