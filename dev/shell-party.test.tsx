@@ -68,6 +68,7 @@ test('desktop and mobile draw every scene as an animated Svg', async ($, on) => 
   mock.clock(on)
   for (const scene of [
     'neon-miami', 'main-stage', 'dune-sea', 'light-grid', 'deep-space', 'dj-booth', 'neon-rain', 'thunder-amps', 'grand-prix', 'rooftop-cats', 'robot-disco', 'blocklands-day', 'ai-lab', 'static-stage', 'black-hole', 'loop-room', 'night-ops', 'dog-park', 'stadium-rock', 'desert-lab', 'gargoyle-city', 'blocklands',
+    'portal-garage', 'crayon-town', 'shadow-office', 'sky-lot', 'shape-games', 'exclusion-zone',
   ]) {
     for (const surface of ['desktop', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...backdrop, surface, props: { ...backdrop.props, scene } })
@@ -84,8 +85,9 @@ test('/party-shell scene and /party-shell next change the picture, not the look'
   const sets = await start($, on)
   expect(JSON.stringify(await run($, 'scene night-ops'))).toContain('Night Ops')
   expect((await drawn($)).alt).toContain('Night Ops')
-  expect(JSON.stringify(await run($, 'next'))).toContain('Dog Park')
-  expect((await drawn($)).alt).toContain('Dog Park')
+  // dark mode's next scene skips the light ones
+  expect(JSON.stringify(await run($, 'next'))).toContain('Stadium Rock')
+  expect((await drawn($)).alt).toContain('Stadium Rock')
   expect(JSON.stringify(await run($, 'every 15'))).toContain('15 min')
   expect(sets.length).toBe(1)
 })
@@ -128,6 +130,25 @@ test('/party-shell alert shows the alert, and /party-shell reactions off stops t
   await run($, 'reactions off')
   await $.turn.complete({ answer: 'Done.', durationMs: 45_000, isAborted: false, turnId: 't3', reason: 'answer' })
   expect((await drawn($)).source).not.toContain('class="fw1"')
+})
+
+test('light mode sends dark text and light glass, and shows only light scenes', async ($, on) => {
+  mock.store(on)
+  const clock = mock.clock(on, { now: 0 })
+  const sets = await start($, on)
+  expect(JSON.stringify(sets[0])).toContain('#f6f2ff')
+  expect(JSON.stringify(await run($, 'mode light'))).toContain('Light mode')
+  expect(sets.length).toBe(2)
+  const look = JSON.stringify(sets[1])
+  expect(look).toContain('#1b1530')
+  expect(look).toContain('#fbf9ff')
+  expect((await drawn($)).alt).toContain('Blocklands Day')
+  await clock.advance(60_000)
+  expect((await drawn($)).alt).toContain('Dog Park')
+  // a dark scene by name brings dark mode back
+  expect(JSON.stringify(await run($, 'scene neon-rain'))).toContain('switched to dark mode')
+  expect(sets.length).toBe(3)
+  expect(JSON.stringify(sets[2])).toContain('#f6f2ff')
 })
 
 test('a failing test run shows the red alert', async ($, on) => {

@@ -16,6 +16,7 @@ const DEFAULTS: ShellPartyPrefs = {
   minutes: 1,
   offset: 0,
   reactions: true,
+  mode: 'dark',
 }
 // How often the slideshow and reactions look at the clock.
 const TICK_MS = 2_000
@@ -72,6 +73,12 @@ const ALT: { readonly [K in SceneName]: string } = {
   'stadium-rock': 'Stadium Rock: an open-air stadium at sunset, a big stage rig, a band in silhouette and confetti',
   'dj-booth': 'DJ Booth: spinning decks, a mixer with bouncing meters, a laptop waveform and an equalizer wall',
   'main-stage': 'Main Stage: a festival stage with lasers, strobes, CO2 jets, DROP on the LED wall and a crowd',
+  'portal-garage': 'Portal Garage: a sunny garage lab with a swirling green portal, a pegboard of tools and a hovering saucer',
+  'crayon-town': 'Crayon Town: a sunny street of tiled houses, crayon doodles on the wall and a yellow kindergarten bus',
+  'shadow-office': 'Shadow Office: a bright office with a conspiracy board, a TOP SECRET map screen and a moon-landing film set',
+  'sky-lot': 'Sky Lot: three concrete pipes in a vacant lot under towering summer clouds, propeller toys flying',
+  'shape-games': 'Shape Games: a pastel hall of stair mazes, a circle, triangle and square, and a red and green signal',
+  'exclusion-zone': 'Exclusion Zone: an abandoned Ferris wheel, a reactor stack, empty blocks and a ticking dosimeter',
 }
 
 function pick(list: readonly string[], seed: string): string {
@@ -84,20 +91,29 @@ function isScene(name: unknown): name is SceneName {
   return typeof name === 'string' && (SCENE_NAMES as readonly string[]).includes(name)
 }
 
-const sceneIndex = (name: string) => Math.max(0, (SCENE_NAMES as readonly string[]).indexOf(name))
+type Mode = ShellPartyPrefs['mode']
 const mod = (n: number, m: number) => ((n % m) + m) % m
 const slot = (now: number, minutes: number) => Math.floor(now / (minutes * 60_000))
 
-// The scene on show: with the slideshow on, it follows the wall clock, so
-// every window and every copy of the theme agrees on it.
+// The scenes made for each mode, in slideshow order.
+const POOL: { readonly [M in Mode]: readonly SceneName[] } = {
+  dark: SCENE_NAMES.filter(n => SCENES[n].mode === 'dark'),
+  light: SCENE_NAMES.filter(n => SCENES[n].mode === 'light'),
+}
+const FIRST: { readonly [M in Mode]: SceneName } = { dark: POOL.dark[0] ?? 'neon-miami', light: POOL.light[0] ?? 'neon-miami' }
+const sceneIndex = (name: SceneName) => Math.max(0, POOL[SCENES[name].mode].indexOf(name))
+
+// The scene on show: with the slideshow on, it follows the wall clock through
+// the mode's scenes, so every window and every copy of the theme agrees on it.
 function sceneAt(p: ShellPartyPrefs, now: number): SceneName {
-  if (!p.slideshow) return isScene(p.scene) ? p.scene : 'neon-miami'
-  return SCENE_NAMES[mod(slot(now, p.minutes) + p.offset, SCENE_NAMES.length)] ?? 'neon-miami'
+  if (!p.slideshow && isScene(p.scene)) return p.scene
+  const pool = POOL[p.mode]
+  return pool[mod(slot(now, p.minutes) + p.offset, pool.length)] ?? FIRST[p.mode]
 }
 
 // The offset that puts `scene` on show right now.
 const offsetFor = (scene: SceneName, now: number, minutes: number) =>
-  mod(sceneIndex(scene) - slot(now, minutes), SCENE_NAMES.length)
+  mod(sceneIndex(scene) - slot(now, minutes), POOL[SCENES[scene].mode].length)
 
 function normalize(value: unknown): ShellPartyPrefs {
   const v = typeof value === 'object' && value !== null ? (value as Partial<ShellPartyPrefs>) : {}
@@ -112,6 +128,7 @@ function normalize(value: unknown): ShellPartyPrefs {
     minutes: Math.max(1, Math.min(240, num(v.minutes, DEFAULTS.minutes))),
     offset: mod(num(v.offset, 0), SCENE_NAMES.length),
     reactions: bool(v.reactions, DEFAULTS.reactions),
+    mode: v.mode === 'light' ? 'light' : 'dark',
   }
 }
 
@@ -169,15 +186,12 @@ async function savePrefs($: EngineInterface, p: ShellPartyPrefs): Promise<void> 
   }
 }
 
-// One readable text palette for every scene, sent once with the backdrop: light
-// text, a soft neon accent that sits well on every scene.
+// A text palette per mode, sent with the backdrop. The desktop app picks the
+// inputs by the person's own light or dark setting and ignores
+// overrideColorScheme, so both slots carry the palette of the theme's mode:
+// text stays readable on the scenes whatever the app's own setting is.
 const ACCENT = '#ff7ac6'
-const PALETTE: ThemeColors = {
-  v: 1,
-  id: 'shell-party',
-  label: 'Shell Party',
-  inputs: {
-    dark: {
+const DARK_COLORS = {
       'text-primary': '#f6f2ff',
       'text-secondary': '#d6cff0',
       'text-muted': '#b0a8d2',
@@ -192,13 +206,35 @@ const PALETTE: ThemeColors = {
       'text-success': '#62ffb4',
       'text-warning': '#ffd45f',
       'text-danger': '#ff6f8f',
-    },
-  },
+} as const
+const LIGHT_ACCENT = '#c0187a'
+const LIGHT_COLORS = {
+  'text-primary': '#1b1530',
+  'text-secondary': '#3a3354',
+  'text-muted': '#655d80',
+  'text-accent': LIGHT_ACCENT,
+  'text-link-color': LIGHT_ACCENT,
+  'fill-accent': LIGHT_ACCENT,
+  'on-accent': '#ffffff',
+  'border-accent': LIGHT_ACCENT,
+  border: '#d6cfe8',
+  'border-strong': '#b4a8d6',
+  'bg-user-message': '#f1ecfb',
+  'text-success': '#0f8a52',
+  'text-warning': '#a86a00',
+  'text-danger': '#c4214a',
+} as const
+const paletteFor = (mode: Mode): ThemeColors => {
+  const c = mode === 'light' ? LIGHT_COLORS : DARK_COLORS
+  return { v: 1, id: `shell-party-${mode}`, label: `Shell Party (${mode})`, inputs: { light: c, dark: c } }
 }
 
 // Glass with no blur: a blur over a moving scene is redrawn every frame, which
-// stutters on laptops. The dark tint alone keeps the text readable.
-const GLASS = { blur: 0, tint: '#07050c', opacity: 0.5 }
+// stutters on laptops. The tint alone keeps the text readable.
+const GLASS: { readonly [M in Mode]: { blur: number; tint: string; opacity: number } } = {
+  dark: { blur: 0, tint: '#07050c', opacity: 0.5 },
+  light: { blur: 0, tint: '#fbf9ff', opacity: 0.6 },
+}
 
 // What the app answered when the theme asked for the backdrop, and the first
 // time a surface asked to draw one: /party-shell shows it, and last-run.json keeps it.
@@ -227,7 +263,7 @@ async function applyLook($: EngineInterface, p: ShellPartyPrefs, isPersonAsking:
   }
   let result: ThemeResult
   try {
-    result = await $.theme.set({ backdrop: { scene: BACKDROP, glass: GLASS }, overrideColorScheme: 'dark', colors: PALETTE })
+    result = await $.theme.set({ backdrop: { scene: BACKDROP, glass: GLASS[p.mode] }, overrideColorScheme: p.mode, colors: paletteFor(p.mode) })
   } catch (err) {
     report.set = `the engine refused the theme: ${err instanceof Error ? err.message : String(err)}`
     await saveReport($)
@@ -295,7 +331,9 @@ const flag = (b: boolean) => (b ? 'on' : 'off')
 const HELP = [
   'Shell Party: animated pixel-art scenes behind the chat',
   '  /party-shell next                   show the next scene',
-  `  /party-shell scene <name>           pick one: ${SCENE_NAMES.join(', ')}`,
+  '  /party-shell mode dark|light        night scenes and light text, or bright scenes and dark text',
+  `  /party-shell scene <name>           dark: ${POOL.dark.join(', ')}`,
+  `                                      light: ${POOL.light.join(', ')}`,
   '  /party-shell slideshow on|off       change scenes on a timer',
   '  /party-shell every <minutes>        how long each scene stays (1 to 240)',
   '  /party-shell motion on|off          moving cars, rain, clouds and lights',
@@ -318,7 +356,7 @@ export const register: Register = on => {
     await $.command.register({
       name: 'party-shell',
       description: 'Shell Party theme: pick a scene, run the slideshow, turn motion, reactions, the backdrop or band on and off',
-      argumentHint: '[next|scene <name>|slideshow on|off|every <minutes>|motion|reactions|backdrop|band on|off|party|alert]',
+      argumentHint: '[next|mode dark|light|scene <name>|slideshow on|off|every <minutes>|motion|reactions|backdrop|band on|off|party|alert]',
     })
     await writeView($, { scene: sceneAt(prefs, await $.clock.now()), fade: prefs.motion })
     try {
@@ -363,6 +401,8 @@ export const register: Register = on => {
     const onShow = sceneAt(current, now)
     const change = async (p: ShellPartyPrefs, text: string) => {
       await savePrefs($, p)
+      // a new mode needs its own text palette and glass
+      if (p.mode !== current.mode) await applyLook($, p, false).catch(() => undefined)
       await tick($)
       return { text }
     }
@@ -374,7 +414,7 @@ export const register: Register = on => {
         text: [
           HELP,
           '',
-          `Now: ${label(onShow)}; slideshow ${flag(current.slideshow)} (every ${current.minutes} min), ` +
+          `Now: ${label(onShow)} (${current.mode} mode); slideshow ${flag(current.slideshow)} (every ${current.minutes} min), ` +
             `motion ${flag(current.motion)}, reactions ${flag(current.reactions)}, ` +
             `backdrop ${flag(current.backdrop)}, band ${flag(current.band)}.`,
           `Backdrop check: ${report.set ?? 'no answer from the app yet'}; ${report.asked ?? 'no window has asked to draw it yet'}.`,
@@ -383,14 +423,30 @@ export const register: Register = on => {
     }
 
     if (part === 'next') {
-      const target = SCENE_NAMES[mod(sceneIndex(onShow) + 1, SCENE_NAMES.length)] ?? 'neon-miami'
+      const pool = POOL[current.mode]
+      const target = pool[mod(pool.indexOf(onShow) + 1, pool.length)] ?? FIRST[current.mode]
       return change({ ...current, scene: target, offset: offsetFor(target, now, current.minutes) }, `Now showing ${label(target)}.`)
+    }
+
+    if (part === 'mode') {
+      if (arg !== 'dark' && arg !== 'light') return { text: `Mode is ${current.mode}. Pick one: /party-shell mode dark, /party-shell mode light` }
+      const target = FIRST[arg]
+      const p: ShellPartyPrefs = { ...current, mode: arg, scene: target, offset: offsetFor(target, now, current.minutes) }
+      return change(
+        p,
+        arg === 'light'
+          ? `Light mode: dark text over ${POOL.light.length} bright scenes, starting with ${label(target)}.`
+          : `Dark mode: light text over ${POOL.dark.length} night scenes, starting with ${label(target)}.`,
+      )
     }
 
     if (part === 'scene') {
       const wanted = SCENE_NAMES.find(n => n === arg || n.replace(/-/g, '') === arg?.replace(/-/g, ''))
       if (wanted === undefined) return { text: `Pick one of: ${SCENE_NAMES.join(', ')}.` }
-      return change({ ...current, scene: wanted, offset: offsetFor(wanted, now, current.minutes) }, `Now showing ${label(wanted)}.`)
+      // a scene brings its mode with it, so the text palette suits it
+      const mode = SCENES[wanted].mode
+      const note = mode !== current.mode ? ` (switched to ${mode} mode)` : ''
+      return change({ ...current, mode, scene: wanted, offset: offsetFor(wanted, now, current.minutes) }, `Now showing ${label(wanted)}${note}.`)
     }
 
     if (part === 'every') {

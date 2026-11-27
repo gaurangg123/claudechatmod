@@ -19,6 +19,8 @@ export type ShellPartyPrefs = {
   offset: number
   /** Fireworks when a long task finishes, a red alert when tests fail. */
   reactions: boolean
+  /** Which scenes the slideshow shows, and the text palette and glass that suit them. */
+  mode: 'dark' | 'light'
 }
 
 /** What the backdrop draws now; a change redraws the picture alone. */

@@ -783,6 +783,10 @@ ${[0, 1, 2, 3, 4].map(i => `@keyframes g${i}{0%,${9 + 10 * i}%{opacity:.12}${10 
 .hb1{animation:hb .48s ease-in-out infinite}
 .hb2{animation:hb .48s ease-in-out infinite -.24s}
 .ls1,.ls2,.sp,.hb1,.hb2{will-change:transform}
+.pr{animation:sw 6s linear infinite;will-change:transform}
+@keyframes rl{0%,49%{opacity:1}50%,100%{opacity:0}}
+.rl1{animation:rl 6s steps(1,end) infinite}
+.rl2{animation:rl 6s steps(1,end) infinite -3s}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.gl{opacity:0}}
 </style>`
 
@@ -3214,6 +3218,492 @@ function mainStage(W, H) {
   return { W, H, body: svgOf(bg, beams, stage, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(air, front) }
 }
 
+// ---------------------------------------------------------------- light scenes
+// Six bright scenes for light mode: a garage lab with a portal, an office that
+// hides a conspiracy, a crayon-bright town, a vacant lot under a summer sky, a
+// pastel games hall and an abandoned zone. Moods only: no show's characters,
+// names, logos or costumes.
+
+// A light panel: white glass, dark text.
+function lightPanel(L, x, y, w, title, lines, accent) {
+  const lh = 4
+  const h = 8 + lines.length * lh + 1
+  L.px(fill('#ffffff', 0.86), x, y, w, h)
+  for (const [px, py, pw, ph] of [[x, y, w, 0.5], [x, y + h - 0.5, w, 0.5], [x, y, 0.5, h], [x + w - 0.5, y, 0.5, h]]) L.px(fill(accent), px, py, pw, ph)
+  L.px(fill(accent, 0.18), x + 0.5, y + 0.5, w - 1, 5)
+  text(L, title, x + 2, y + 1.7, 0.5, fill(accent))
+  lines.forEach((segs, i) => {
+    let cx = x + 2
+    for (const [str, color, cls] of segs) cx += text(L, str, cx, y + 8 + i * lh, 0.5, `${fill(color)}${cls ? ` class="${cls}"` : ''}`) + 0.5
+  })
+  return [x, y, w, h]
+}
+
+// Every light scene ends the same way: a soft white centre so dark text reads.
+const lightScene = (W, H, below, above = [], defs = '') => ({
+  W, H, scan: false, defs: defs + calmOf('calmLight', '#ffffff', 0.55, 0.3),
+  body: svgOf(...below) + `<rect width="${W}" height="${H}" fill="url(#calmLight)"/>` + svgOf(...above),
+})
+
+// ---- Portal Garage: a sunny garage lab with a swirling green portal
+function portalGarage(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1301 : 1302)
+  const HY = Math.round(H * (isTall ? 0.8 : 0.76))
+  const bg = new Layer()
+  const room = new Layer()
+  const portal = new Layer()
+  const gear = new Layer()
+  const hud = new Layer()
+  bg.px(fill('#efe4cc'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#f6eedc'], [1, '#e6d8bc']])
+  // the open garage door, a strip of blue sky
+  room.px(fill('#9fe0ff'), 0, 0, W, 10)
+  room.px(fill('#c9b48e'), 0, 10, W, 2)
+  for (let x = 0; x < W; x += 16) room.px(fill('#b89a72'), x, 10, 1, 2)
+  // the pegboard of tools and the shelf of jars
+  const px0 = isTall ? 8 : 12
+  room.px(fill('#d8c49c'), px0, 22, 60, 34)
+  for (let y = 25; y < 54; y += 4) for (let x = px0 + 3; x < px0 + 58; x += 4) room.px(fill('#b8a47c'), x, y, 0.6, 0.6)
+  for (const [x, y, w, h, c] of [[8, 28, 2, 14, '#5a6a7a'], [16, 26, 6, 3, '#d83a3a'], [16, 29, 1.2, 10, '#5a4a3a'], [28, 30, 10, 2, '#3a8ad8'], [44, 26, 2, 16, '#5a6a7a'], [50, 34, 7, 7, '#e8a020']]) room.px(fill(c), px0 + x, y, w, h)
+  const sx = isTall ? W - 60 : W - 90
+  room.px(fill('#a8865a'), sx, 30, 52, 1.5)
+  for (let k = 0; k < 7; k++) {
+    const c = ['#5dff6a', '#38c8ff', '#ff8a3a', '#c86bff'][k % 4]
+    room.px(fill('#cfe6f0', 0.8), sx + 2 + k * 7, 23, 5, 7)
+    room.px(fill(c, 0.85), sx + 2 + k * 7, 26, 5, 4)
+  }
+  // a hanging bulb
+  room.px(fill('#6a5a4a'), W * 0.42, 12, 0.5, 10)
+  disc(room, W * 0.42 + 0.25, 23.5, 2, fill('#fff3b0'))
+  bg.raw(`<circle cx="${num(W * 0.42)}" cy="24" r="22" fill="url(#bulb)"/>`)
+  // the floor and the workbench
+  room.px(fill('#c8b898'), 0, HY, W, H - HY)
+  room.px(fill('#b4a482'), 0, HY, W, 0.8)
+  room.raw(`<ellipse cx="${num(W * 0.32)}" cy="${HY + 8}" rx="12" ry="2" fill="#5a4a3a" opacity="0.2"/>`)
+  const bx = isTall ? 6 : 14
+  gear.px(fill('#8a6a42'), bx, HY - 14, 56, 3)
+  gear.px(fill('#6a5032'), bx + 2, HY - 11, 2, 11)
+  gear.px(fill('#6a5032'), bx + 52, HY - 11, 2, 11)
+  for (const [dx, c] of [[6, '#5dff6a'], [14, '#38c8ff'], [22, '#ff5ad8']]) {
+    sprite(gear, FLASK, bx + dx, HY - 19, 1, { '#': fill('#7a8a9a', 0.7), l: fill(c, 0.9) })
+    gear.px(`${fill(c, 0.7)} class="up${1 + (dx % 3)}"`, bx + dx + 1.5, HY - 21, 0.8, 0.8)
+  }
+  gear.px(fill('#3a4a5a'), bx + 32, HY - 22, 16, 8)
+  gear.px(fill('#0a1a10'), bx + 33, HY - 21, 14, 6)
+  for (let x = 0; x < 13; x += 1) gear.px(fill('#5dff6a', 0.9), bx + 33.5 + x, HY - 18 + Math.round(Math.sin(x * 0.9) * 1.5), 0.6, 0.6)
+  // the portal: a glow, rings, and a spiral that turns
+  const cx = Math.round(W * (isTall ? 0.62 : 0.66))
+  const cy = Math.round(isTall ? H * 0.5 : H * 0.46)
+  const r = isTall ? 24 : 30
+  bg.raw(`<circle cx="${cx}" cy="${cy}" r="${r * 1.8}" fill="url(#portalGlow)" class="pu"/>`)
+  portal.raw(`<g shape-rendering="geometricPrecision"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#2fd94a"/><circle cx="${cx}" cy="${cy}" r="${num(r * 0.78)}" fill="#6aff5a"/><circle cx="${cx}" cy="${cy}" r="${num(r * 0.5)}" fill="#c8ffa0"/><circle cx="${cx}" cy="${cy}" r="${num(r * 0.22)}" fill="#f4ffe0"/></g>`)
+  let spiral = ''
+  for (let arm = 0; arm < 3; arm++) {
+    let d = ''
+    for (let t = 0; t <= 1; t += 0.04) {
+      const a = arm * 2.094 + t * 7
+      d += `${t === 0 ? 'M' : 'L'}${num(cx + Math.cos(a) * r * t)} ${num(cy + Math.sin(a) * r * t)}`
+    }
+    spiral += `<path d="${d}" stroke="#1a9a30" stroke-width="1.6" fill="none" opacity="0.7"/>`
+  }
+  portal.raw(`<g class="pr" ${rot(cx, cy)} shape-rendering="geometricPrecision">${spiral}</g>`)
+  for (let k = 0; k < 16; k++) {
+    const a = rand() * Math.PI * 2
+    const d = r * (1.05 + rand() * 0.3)
+    portal.px(`${fill('#3ae04a', 0.9)} class="tw${1 + (k % 3)}"`, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 1, 1)
+  }
+  // a saucer, hovering
+  {
+    const s = new Layer()
+    const x = isTall ? 22 : W - 70
+    const y = isTall ? H * 0.32 : HY - 22
+    s.raw(`<g shape-rendering="geometricPrecision"><ellipse cx="${x + 16}" cy="${y}" rx="9" ry="6" fill="#9fe8ff" opacity="0.85"/><ellipse cx="${x + 16}" cy="${y + 4}" rx="18" ry="4.5" fill="#b8c0cc"/><ellipse cx="${x + 16}" cy="${y + 5.5}" rx="12" ry="2" fill="#8a94a4"/></g>`)
+    for (let k = 0; k < 5; k++) s.px(`${fill(['#ff3a3a', '#ffd23f', '#3ae04a'][k % 3])} class="${k % 2 ? 'ra' : 'rb'}"`, x + 5 + k * 5.5, y + 4, 1, 1)
+    gear.raw(`<g class="bo">${s.svg()}</g>`)
+    gear.raw(`<ellipse cx="${x + 16}" cy="${num(isTall ? y + 18 : HY + 2)}" rx="14" ry="1.5" fill="#000" opacity="0.12"/>`)
+  }
+  lightPanel(hud, isTall ? W - 64 : W - 66, isTall ? 14 : 36, 58, 'GARAGE.LOG', [
+    [['PORTAL ', '#6a6a7a'], ['STABLE', '#1a9a30']],
+    [['DIMENSION ', '#6a6a7a'], ['42-B', '#c0187a']],
+    [['FLUX ', '#6a6a7a'], ['88%', '#2a6ad8', 'blink']],
+  ], '#1a9a30')
+  const extra = radial('portalGlow', '#5dff6a', 0.45) + radial('bulb', '#fff3b0', 0.5)
+  return lightScene(W, H, [bg, room, portal, gear], [hud], extra)
+}
+
+// ---- Shadow Office: a bright office hiding a conspiracy board and a moon set
+function shadowOffice(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1401 : 1402)
+  const HY = Math.round(H * (isTall ? 0.78 : 0.74))
+  const bg = new Layer()
+  const wall = new Layer()
+  const props = new Layer()
+  const hud = new Layer()
+  bg.px(fill('#f2f5f7'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#eef2f5'], [1, '#e2e8ec']])
+  for (let x = 10; x < W; x += 40) wall.px(fill('#ffffff'), x, 2, 24, 2)
+  wall.px(fill('#d9dee3'), 0, HY, W, H - HY)
+  for (let x = 0; x < W; x += 12) wall.px(fill('#c8ced4'), x, HY, 0.4, H - HY)
+  for (let y = HY + 6; y < H; y += 6) wall.px(fill('#c8ced4'), 0, y, W, 0.4)
+  // the conspiracy board: photos, pins and red string
+  const kx = isTall ? 10 : 14
+  const ky = isTall ? 40 : 22
+  const kw = isTall ? 74 : 92
+  const kh = isTall ? 52 : 58
+  wall.px(fill('#8a6038'), kx - 2, ky - 2, kw + 4, kh + 4)
+  wall.px(fill('#c9965a'), kx, ky, kw, kh)
+  for (let i = 0; i < 70; i++) wall.px(fill('#b07e48', 0.6), kx + rand() * kw, ky + rand() * kh, 0.6, 0.6)
+  const pins = []
+  for (let i = 0; i < (isTall ? 6 : 8); i++) {
+    const x = kx + 4 + rand() * (kw - 16)
+    const y = ky + 4 + rand() * (kh - 16)
+    wall.px(fill('#ffffff'), x, y, 11, 9)
+    wall.px(fill(['#9ab0c0', '#c0a890', '#a8b8a0', '#b0a0c0'][i % 4]), x + 1, y + 1, 9, 6)
+    wall.px(fill('#5a5a64', 0.6), x + 3, y + 3, 4, 3)
+    pins.push([x + 5.5, y + 0.6])
+  }
+  let strings = ''
+  for (let i = 0; i < pins.length; i++) for (const j of [i + 1, i + 3]) if (j < pins.length) strings += `M${num(pins[i][0])} ${num(pins[i][1])}L${num(pins[j][0])} ${num(pins[j][1])}`
+  wall.raw(`<path d="${strings}" stroke="#d81e2a" stroke-width="0.45" fill="none" shape-rendering="geometricPrecision"/>`)
+  for (const [x, y] of pins) disc(wall, x, y, 1, fill('#e0242b'))
+  text(wall, '?', kx + kw - 8, ky + 3, 1.2, fill('#d81e2a'))
+  // the big screen: a world map and a stamp
+  const mx = isTall ? W - 74 : W - 104
+  const my = isTall ? 104 : 18
+  const mw = isTall ? 66 : 90
+  const mh = isTall ? 40 : 50
+  wall.px(fill('#2a3240'), mx - 2, my - 2, mw + 4, mh + 4)
+  wall.px(fill('#0e1a26'), mx, my, mw, mh)
+  for (let i = 0; i < 260; i++) {
+    const x = rand()
+    const y = rand()
+    const land = Math.sin(x * 9) * Math.cos(y * 7) + Math.sin(x * 3 + y * 5) > 0.35
+    if (land) wall.px(fill('#3ad08a', 0.7), mx + 2 + x * (mw - 4), my + 2 + y * (mh - 10), 0.8, 0.8)
+  }
+  for (let k = 0; k < 4; k++) wall.px(`${fill('#ff3a3a')} class="tw${1 + (k % 3)}"`, mx + 8 + rand() * (mw - 16), my + 6 + rand() * (mh - 18), 1.2, 1.2)
+  const stamp = 'TOP SECRET'
+  wall.px(`${fill('#ffffff', 0.9)} class="blink"`, mx + mw / 2 - textWidth(stamp, 0.7) / 2 - 1.5, my + mh - 8, textWidth(stamp, 0.7) + 3, 5.5)
+  text(wall, stamp, mx + mw / 2 - textWidth(stamp, 0.7) / 2, my + mh - 7, 0.7, fill('#d81e2a'))
+  // the moon set: a grey dune, a flag, a light and a camera filming
+  const ms = isTall ? W - 60 : W * 0.56
+  props.raw(`<path d="M${ms - 10} ${HY + 1}Q${ms + 22} ${HY - 18} ${ms + 56} ${HY + 1}Z" fill="#c8c8cc"/>`)
+  for (let k = 0; k < 6; k++) disc(props, ms + 4 + k * 8, HY - 4 - (k % 2) * 3, 1.5, fill('#a8a8b0'))
+  props.px(fill('#8a8a90'), ms + 26, HY - 26, 0.6, 18)
+  props.px(fill('#f4f4f4'), ms + 26.6, HY - 26, 10, 6)
+  for (let k = 0; k < 3; k++) props.px(fill('#c8ccd4'), ms + 26.6, HY - 25 + k * 2, 10, 0.5)
+  const lx = ms + 66
+  props.px(fill('#4a4a54'), lx, HY - 26, 0.8, 26)
+  props.px(fill('#4a4a54'), lx - 3, HY - 1, 7, 1)
+  props.px(fill('#2a2a34'), lx - 3, HY - 30, 7, 5)
+  bg.raw(`<polygon points="${lx - 3},${HY - 28} ${lx - 3},${HY - 26} ${ms + 10},${HY} ${ms + 40},${HY}" fill="#fff8d8" opacity="0.5"/>`)
+  if (!isTall) {
+    const cx = ms - 30
+    props.px(fill('#2a2a34'), cx, HY - 14, 10, 7)
+    disc(props, cx + 2, HY - 16, 2.5, fill('#2a2a34'))
+    disc(props, cx + 8, HY - 16, 2.5, fill('#2a2a34'))
+    props.px(fill('#1a1a22'), cx + 10, HY - 12, 4, 3)
+    for (const dx of [1, 5, 9]) props.px(fill('#4a4a54'), cx + dx, HY - 7, 0.6, 7)
+    props.px(`${fill('#ff3a3a')} class="blink"`, cx + 1, HY - 13, 1, 1)
+  }
+  // cubicles and a plant
+  const cbx = isTall ? 4 : 10
+  for (let k = 0; k < (isTall ? 1 : 2); k++) {
+    props.px(fill('#9ab4c8'), cbx + k * 34, HY - 14, 30, 14)
+    props.px(fill('#b8ccdc'), cbx + k * 34, HY - 14, 30, 1)
+    props.px(fill('#3a4a5a'), cbx + k * 34 + 8, HY - 20, 12, 7)
+    props.px(fill('#7ac8ff', 0.8), cbx + k * 34 + 9, HY - 19, 10, 5)
+  }
+  props.px(fill('#c87a4a'), isTall ? 40 : 82, HY - 6, 6, 6)
+  for (const [dx, dy, r] of [[3, -9, 4], [0, -12, 3], [6, -12, 3]]) disc(props, (isTall ? 40 : 82) + dx, HY + dy, r, fill('#4aa860'))
+  lightPanel(hud, isTall ? 8 : W / 2 - 30, isTall ? 8 : 6, 58, 'MEMO', [
+    [['NOTHING TO SEE HERE', '#2a2a3a']],
+    [['CLEARANCE ', '#6a6a7a'], ['LEVEL 9', '#d81e2a', 'blink']],
+    [['SHRED BY ', '#6a6a7a'], ['FRIDAY', '#2a6ad8']],
+  ], '#2a3a5a')
+  return lightScene(W, H, [bg, wall, props], [hud])
+}
+
+// ---- Crayon Town: a sunny street, a kindergarten bus, crayon doodles
+function crayonTown(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1501 : 1502)
+  const HY = Math.round(H * (isTall ? 0.76 : 0.72))
+  const bg = new Layer()
+  const sky = new Layer()
+  const town = new Layer()
+  const detail = new Layer()
+  const street = new Layer()
+  bg.px(fill('#7cc8ff'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#6ab8ff'], [1, '#d8f0ff']])
+  // a crayon sun with rays
+  const sx = isTall ? 24 : 26
+  const sy = isTall ? 26 : 24
+  disc(sky, sx, sy, 9, fill('#ffd23f'))
+  disc(sky, sx, sy, 6, fill('#ffe680'))
+  const rays = new Layer()
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2
+    rays.raw(`<line x1="${num(sx + Math.cos(a) * 11)}" y1="${num(sy + Math.sin(a) * 11)}" x2="${num(sx + Math.cos(a) * 16)}" y2="${num(sy + Math.sin(a) * 16)}" stroke="#ff9a2a" stroke-width="1.2"/>`)
+  }
+  sky.raw(`<g class="rs" ${rot(sx, sy)}>${rays.svg()}</g>`)
+  moving(sky, 'dt', a => {
+    for (const [cx, cy, cw] of isTall ? [[70, 30, 34], [120, 60, 30]] : [[90, 18, 40], [170, 34, 36], [250, 14, 44]]) cloud(a, cx, cy, cw)
+  })
+  // houses with tiled roofs, block walls and power lines
+  const houses = isTall ? [[2, 40, '#fff0e0', '#3a5a9a'], [46, 42, '#ffe0e8', '#9a3a2a'], [92, 44, '#e8f4e0', '#4a4a6a'], [140, 40, '#fff4c8', '#3a6a5a']] : [[0, 46, '#fff0e0', '#3a5a9a'], [52, 50, '#ffe0e8', '#9a3a2a'], [210, 50, '#e8f4e0', '#4a4a6a'], [266, 54, '#fff4c8', '#3a6a5a']]
+  for (const [x, w, wallC, roofC] of houses) {
+    const top = HY - 38
+    town.px(fill(wallC), x + 3, top, w - 6, 38)
+    for (let r = 0; r < 8; r++) town.px(fill(r % 2 ? roofC : mix(roofC, '#000000', 0.2)), x + r * 0.8, top - 8 + r, w - r * 1.6, 1)
+    detail.px(fill('#7ac8ff'), x + 8, top + 6, 8, 6)
+    detail.px(fill('#7ac8ff'), x + w - 16, top + 6, 8, 6)
+    detail.px(fill('#ffffff'), x + 11.6, top + 6, 0.8, 6)
+    detail.px(fill('#ffffff'), x + w - 12.4, top + 6, 0.8, 6)
+    detail.px(fill('#8a5a3a'), x + w / 2 - 3, top + 22, 6, 16)
+  }
+  town.px(fill('#c8c8c0'), 0, HY - 10, W, 10)
+  for (let x = 0; x < W; x += 6) for (let y = HY - 10; y < HY; y += 3) town.px(fill('#b4b4ac'), x + ((y / 3) % 2) * 3, y, 0.5, 3)
+  // crayon doodles on the wall
+  const dx = isTall ? 60 : 120
+  const doodles = new Layer()
+  doodles.raw(`<g stroke-width="0.8" fill="none" shape-rendering="geometricPrecision">` +
+    `<circle cx="${dx}" cy="${HY - 7}" r="1.6" stroke="#ff3a3a"/><path d="M${dx} ${HY - 5.4}V${HY - 2}M${dx - 2} ${HY - 4}H${dx + 2}M${dx} ${HY - 2}L${dx - 1.5} ${HY}M${dx} ${HY - 2}L${dx + 1.5} ${HY}" stroke="#ff3a3a"/>` +
+    `<path d="M${dx + 10} ${HY - 3}l2 -5l2 5l-5 -3h6z" stroke="#ffb020"/>` +
+    `<path d="M${dx + 22} ${HY - 4}c-2 -3 -5 0 0 3c5 -3 2 -6 0 -3z" stroke="#ff5ad8"/>` +
+    `<path d="M${dx + 30} ${HY - 2}q3 -6 6 0q3 -6 6 0" stroke="#3a8ad8"/></g>`)
+  town.raw(doodles.svg())
+  for (const px of isTall ? [36, 140] : [44, 200, 310]) town.px(fill('#7a6a5a'), px, HY - 62, 1.4, 62)
+  town.raw(`<path d="M0 ${HY - 58}Q${W / 4} ${HY - 52} ${W / 2} ${HY - 58}T${W} ${HY - 58}M0 ${HY - 54}Q${W / 4} ${HY - 48} ${W / 2} ${HY - 54}T${W} ${HY - 54}" stroke="#4a4a4a" stroke-width="0.35" fill="none" opacity="0.7"/>`)
+  // the street, and the bus going by
+  street.px(fill('#a8a8a8'), 0, HY, W, H - HY)
+  for (let x = 4; x < W; x += 14) street.px(fill('#ffffff'), x, HY + (H - HY) / 2, 7, 0.8)
+  moving(street, 'cw2', a => {
+    const x = isTall ? 40 : 90
+    const y = HY + 4
+    a.raw(`<rect x="${x}" y="${y}" width="44" height="16" rx="4" fill="#ffd23f"/><rect x="${x + 40}" y="${y + 4}" width="6" height="10" rx="2" fill="#ffd23f"/>`)
+    for (let k = 0; k < 5; k++) a.px(fill('#9fe0ff'), x + 3 + k * 7.5, y + 3, 6, 5)
+    a.px(fill('#ff8a3a'), x, y + 10, 46, 1.2)
+    for (const wx of [9, 35]) {
+      disc(a, x + wx, y + 16, 3, fill('#2a2a2a'))
+      disc(a, x + wx, y + 16, 1.2, fill('#b8b8b8'))
+    }
+    a.px(fill('#fff8c8'), x + 44.5, y + 11, 1.5, 1.5)
+  })
+  return lightScene(W, H, [bg, sky, town, detail, street])
+}
+
+// ---- Sky Lot: concrete pipes in a vacant lot, propeller toys in a summer sky
+function skyLot(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1601 : 1602)
+  const HY = Math.round(H * (isTall ? 0.66 : 0.62))
+  const bg = new Layer()
+  const sky = new Layer()
+  const far = new Layer()
+  const lot = new Layer()
+  const toys = new Layer()
+  bg.px(fill('#5ab4ff'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#4aa8ff'], [0.7, '#9fd4ff'], [1, '#e0f4ff']])
+  // towering summer clouds
+  moving(sky, 'dt', a => {
+    for (const [cx, cy, r] of isTall ? [[40, 60, 14], [130, 40, 12]] : [[60, 46, 16], [250, 40, 18], [170, 58, 10]]) {
+      for (const [ox, oy, k] of [[0, 0, 1], [-r * 0.9, r * 0.5, 0.7], [r * 0.9, r * 0.5, 0.75], [0, -r * 0.7, 0.7], [-r * 0.4, r * 0.8, 0.8], [r * 0.5, r * 0.85, 0.8]]) disc(a, cx + ox, cy + oy, Math.round(r * k), fill('#ffffff', 0.95))
+      a.px(fill('#dcecff', 0.9), cx - r * 1.6, cy + r * 1.1, r * 3.2, 2)
+    }
+  })
+  // far rooftops and a fence
+  for (let x = 0; x < W;) {
+    const w = 14 + Math.floor(rand() * 16)
+    const t = HY - 10 - Math.floor(rand() * 10)
+    far.px(fill('#c8d4e0'), x, t, w, HY - t)
+    for (let r = 0; r < 4; r++) far.px(fill(['#6a7a9a', '#9a5a4a', '#5a8a7a'][x % 3]), x - 1 + r * 0.6, t - 4 + r, w + 2 - r * 1.2, 1)
+    x += w + 2
+  }
+  far.px(fill('#c8a878'), 0, HY - 6, W, 6)
+  for (let x = 0; x < W; x += 3) far.px(fill('#a8885a'), x, HY - 6, 0.6, 6)
+  // the lot: grass, bare patches, a telephone pole
+  band(lot, W, HY, H, [[0, '#9ad06a'], [1, '#7ab84a']])
+  for (let i = 0; i < 14; i++) lot.raw(`<ellipse cx="${num(rand() * W)}" cy="${num(HY + 4 + rand() * (H - HY - 6))}" rx="${num(4 + rand() * 8)}" ry="${num(1 + rand() * 2)}" fill="#c8b088" opacity="0.7"/>`)
+  for (let i = 0; i < 60; i++) lot.px(fill('#5aa83a', 0.8), Math.floor(rand() * W), HY + 1 + Math.floor(rand() * (H - HY - 2)), 0.5, 1.5)
+  const tp = isTall ? W - 20 : W - 34
+  lot.px(fill('#8a7a6a'), tp, HY - 70, 2, 76)
+  lot.px(fill('#8a7a6a'), tp - 6, HY - 66, 14, 1.2)
+  // three concrete pipes, stacked
+  const cx = Math.round(W * (isTall ? 0.5 : 0.62))
+  const r = isTall ? 13 : 15
+  const py = Math.round(isTall ? H * 0.82 : H * 0.8)
+  lot.raw(`<ellipse cx="${cx}" cy="${py + r}" rx="${r * 3}" ry="3" fill="#000" opacity="0.12"/>`)
+  for (const [ox, oy] of [[-r, 0], [r, 0], [0, -r * 1.72]]) {
+    const x = cx + ox
+    const y = py + oy
+    lot.px(fill('#a8a8b0'), x - r, y - r, r * 0.5, r * 2)
+    disc(lot, x, y, r, fill('#c4c4cc'))
+    disc(lot, x, y, Math.round(r * 0.72), fill('#9a9aa4'))
+    disc(lot, x, y, Math.round(r * 0.6), fill('#4a4a54'))
+    for (let k = 0; k < 4; k++) lot.px(fill('#b0b0b8'), x - r * 0.6 + rand() * r * 1.2, y - r * 0.9 + rand() * 1.5, 1, 0.6)
+  }
+  disc(lot, cx - r * 2.6, py + r - 2.5, 2.5, fill('#e0242b'))
+  lot.px(fill('#ff8a7a'), cx - r * 2.6 - 1, py + r - 4, 1.2, 1)
+  // propeller toys flying across
+  for (const [x, y, cls] of isTall ? [[120, 70, 'fy'], [60, 110, 'cw']] : [[200, 50, 'fy'], [120, 80, 'cw']]) {
+    moving(toys, cls, a => {
+      a.px(fill('#ffd23f'), x - 0.4, y, 0.8, 4)
+      a.px(fill('#e0a020'), x - 1.5, y + 3.5, 3, 1.4)
+      a.px(`${fill('#ff5a3a')} class="ra"`, x - 4, y - 0.4, 8, 0.8)
+      a.px(`${fill('#ff5a3a')} class="rb"`, x - 1.5, y - 0.4, 3, 0.8)
+    })
+  }
+  return lightScene(W, H, [bg, sky, far, lot, toys])
+}
+
+// ---- Shape Games: a pastel hall of stair mazes, shapes and a signal
+function shapeGames(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1701 : 1702)
+  const HY = Math.round(H * (isTall ? 0.76 : 0.72))
+  const bg = new Layer()
+  const stairs = new Layer()
+  const shapes = new Layer()
+  const floor = new Layer()
+  const hud = new Layer()
+  bg.px(fill('#fbe8f0'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#fdf0f5'], [1, '#f4d4e2']])
+  // stair mazes in pastel, climbing up the walls
+  const colors = [['#ff8fb8', '#e06a98'], ['#7fe0c4', '#4ab89a'], ['#ffd86a', '#e0b040'], ['#b8a0ff', '#8a6ae0']]
+  const flights = isTall
+    ? [[4, HY, 1, 0], [W - 4, HY - 30, -1, 1], [10, HY - 70, 1, 2], [W - 10, HY - 110, -1, 3]]
+    : [[4, HY, 1, 0], [W - 4, HY, -1, 1], [30, HY - 48, 1, 2], [W - 30, HY - 50, -1, 3]]
+  for (const [x0, y0, dir, ci] of flights) {
+    const [top, side] = colors[ci]
+    for (let k = 0; k < 10; k++) {
+      const x = dir > 0 ? x0 + k * 4 : x0 - (k + 1) * 4
+      const y = y0 - (k + 1) * 3
+      stairs.px(fill(side), x, y + 1, 4, y0 - y - 1)
+      stairs.px(fill(top), x, y, 4, 1.2)
+    }
+    stairs.px(fill(side), dir > 0 ? x0 + 40 : x0 - 52, y0 - 33, 12, 2)
+  }
+  // circle, triangle, square
+  const cy = Math.round(H * (isTall ? 0.2 : 0.2))
+  const step = isTall ? 40 : 52
+  const cx = W / 2
+  const sz = isTall ? 13 : 16
+  shapes.raw(`<g fill="none" stroke="#ff3f8a" stroke-width="2.4" shape-rendering="geometricPrecision">` +
+    `<circle cx="${cx - step}" cy="${cy}" r="${sz}"/>` +
+    `<path d="M${cx} ${cy - sz}L${cx + sz} ${cy + sz * 0.8}L${cx - sz} ${cy + sz * 0.8}Z"/>` +
+    `<rect x="${cx + step - sz}" y="${cy - sz}" width="${sz * 2}" height="${sz * 2}"/></g>`)
+  // the signal: red light, green light
+  const sx = isTall ? 18 : 30
+  const sy = HY - 50
+  shapes.px(fill('#3a3a44'), sx + 3.5, sy + 20, 1.5, HY - sy - 20)
+  shapes.px(fill('#2a2a34'), sx, sy, 8, 20)
+  disc(shapes, sx + 4, sy + 5, 3, fill('#5a2a2a'))
+  disc(shapes, sx + 4, sy + 14, 3, fill('#2a4a2a'))
+  const red = new Layer()
+  disc(red, sx + 4, sy + 5, 3, fill('#ff2a2a'))
+  const green = new Layer()
+  disc(green, sx + 4, sy + 14, 3, fill('#2aff5a'))
+  shapes.raw(`<g class="rl1">${red.svg()}</g><g class="rl2">${green.svg()}</g>`)
+  // the sand floor, painted lines, a slide
+  floor.px(fill('#ead8b4'), 0, HY, W, H - HY)
+  floor.raw(`<path d="M0 ${HY + 10}H${W}M${W * 0.3} ${HY}V${H}M${W * 0.7} ${HY}V${H}" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>`)
+  for (let i = 0; i < 50; i++) floor.px(fill('#d4c098', 0.8), rand() * W, HY + 1 + rand() * (H - HY - 2), 0.6, 0.6)
+  const lx = isTall ? W - 50 : W - 80
+  floor.px(fill('#ff8fb8'), lx, HY - 30, 3, 30)
+  floor.px(fill('#ff8fb8'), lx + 12, HY - 30, 3, 30)
+  for (let y = HY - 26; y < HY; y += 5) floor.px(fill('#e06a98'), lx, y, 15, 1)
+  floor.raw(`<path d="M${lx + 15} ${HY - 30}Q${lx + 30} ${HY - 26} ${lx + 40} ${HY}" stroke="#7fe0c4" stroke-width="4" fill="none" shape-rendering="geometricPrecision"/>`)
+  lightPanel(hud, isTall ? W - 64 : W - 66, isTall ? 104 : 8, 58, 'ROUND 3', [
+    [['PLAYERS ', '#6a6a7a'], ['101', '#ff3f8a']],
+    [['TIME ', '#6a6a7a'], ['04:56', '#2a6ad8', 'blink']],
+    [['NEXT ', '#6a6a7a'], ['TUG OF CODE', '#1a9a6a']],
+  ], '#ff3f8a')
+  return lightScene(W, H, [bg, stairs, shapes, floor], [hud])
+}
+
+// ---- Exclusion Zone: an abandoned fairground, a reactor stack, a dosimeter
+function exclusionZone(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1801 : 1802)
+  const HY = Math.round(H * (isTall ? 0.76 : 0.72))
+  const bg = new Layer()
+  const far = new Layer()
+  const mid = new Layer()
+  const front = new Layer()
+  const hud = new Layer()
+  bg.px(fill('#d8dcd4'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#c4cac2'], [0.7, '#dfe3da'], [1, '#eceee6']])
+  moving(bg, 'dt', a => {
+    for (let k = 0; k < 8; k++) a.px(fill('#f4f6f0', 0.7), rand() * W - 20, rand() * H * 0.3, 30 + rand() * 40, 3)
+  })
+  moving(bg, 'fy', a => {
+    for (const [bx, by] of [[200, 34], [210, 30], [222, 38]]) {
+      a.px(fill('#5a5a5a'), bx, by, 1.5, 0.6)
+      a.px(fill('#5a5a5a'), bx + 1.5, by + 0.6, 1, 0.6)
+      a.px(fill('#5a5a5a'), bx + 2.5, by, 1.5, 0.6)
+    }
+  })
+  // panel blocks on the left, the reactor and its stack on the right
+  for (const [x, w, h] of isTall ? [[0, 30, 70], [32, 24, 52]] : [[0, 34, 78], [36, 28, 60], [66, 24, 48]]) {
+    far.px(fill('#b4b8b0'), x, HY - h, w, h)
+    for (let y = HY - h + 3; y < HY - 2; y += 4) for (let wx = x + 2; wx < x + w - 2; wx += 3) far.px(fill(rand() < 0.8 ? '#8a8e88' : '#5a5e58'), wx, y, 1.6, 2)
+  }
+  const rx = isTall ? W - 64 : W - 110
+  far.px(fill('#a4aaa4'), rx, HY - 40, isTall ? 60 : 90, 40)
+  far.px(fill('#8a908a'), rx, HY - 40, isTall ? 60 : 90, 2)
+  far.px(fill('#9aa09a'), rx + 10, HY - 52, 30, 12)
+  for (let x = rx + 4; x < rx + (isTall ? 56 : 86); x += 6) far.px(fill('#7a807a'), x, HY - 34, 3, 6)
+  const vx = rx + (isTall ? 44 : 64)
+  for (let k = 0; k < 10; k++) far.px(fill(k % 2 ? '#e8e8e0' : '#d84a3a'), vx, HY - 100 + k * 6, 6, 6)
+  for (const y of [HY - 80, HY - 60]) far.px(fill('#6a706a'), vx - 3, y, 12, 1)
+  far.px(`${fill('#d84a3a')} class="blink"`, vx + 2, HY - 102, 2, 2)
+  // the Ferris wheel, still
+  const wx = Math.round(W * (isTall ? 0.4 : 0.34))
+  const R = isTall ? 30 : 36
+  const wy = HY - R - 6
+  mid.px(fill('#8a7a4a'), wx - R * 0.5, wy, 1.2, HY - wy)
+  mid.px(fill('#8a7a4a'), wx + R * 0.5, wy, 1.2, HY - wy)
+  mid.raw(`<circle cx="${wx}" cy="${wy}" r="${R}" fill="none" stroke="#c8a040" stroke-width="1"/><circle cx="${wx}" cy="${wy}" r="${R - 3}" fill="none" stroke="#a8883a" stroke-width="0.5"/>`)
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2
+    mid.raw(`<line x1="${wx}" y1="${wy}" x2="${num(wx + Math.cos(a) * R)}" y2="${num(wy + Math.sin(a) * R)}" stroke="#a8883a" stroke-width="0.4"/>`)
+    if (k % 2 === 0) {
+      mid.px(fill('#e0b830'), wx + Math.cos(a) * R - 2, wy + Math.sin(a) * R + 0.5, 4, 3.5)
+      mid.px(fill('#b08a20'), wx + Math.cos(a) * R - 2, wy + Math.sin(a) * R + 3, 4, 1)
+    }
+  }
+  disc(mid, wx, wy, 3, fill('#a8883a'))
+  // overgrown trees, a fence with a hazard sign
+  for (let x = -4; x < W; x += 10 + rand() * 12) {
+    const r = 5 + rand() * 5
+    front.px(fill('#6a5a4a'), x + 0.5, HY - 6, 1.2, 6)
+    disc(front, x + 1, HY - 6 - r, Math.round(r), fill(['#7a9a6a', '#6a8a5a', '#8aa878'][Math.floor(rand() * 3)]))
+  }
+  front.px(fill('#bfc4b8'), 0, HY, W, H - HY)
+  for (let i = 0; i < 60; i++) front.px(fill('#8aa878', 0.8), rand() * W, HY + 1 + rand() * (H - HY - 2), 0.6, 1.5)
+  const fy = HY + (isTall ? 18 : 14)
+  for (let x = 0; x < W; x += 2) front.px(fill('#8a8e88', 0.7), x, fy - 12, 0.3, 12)
+  for (let y = fy - 12; y < fy; y += 2) front.px(fill('#8a8e88', 0.7), 0, y, W, 0.3)
+  for (let x = 0; x < W; x += 24) front.px(fill('#6a6e68'), x, fy - 14, 1, 14)
+  const hx = isTall ? W / 2 - 6 : W * 0.6
+  front.raw(`<g shape-rendering="geometricPrecision"><path d="M${hx + 6} ${fy - 13}L${hx + 13} ${fy - 1}L${hx - 1} ${fy - 1}Z" fill="#ffd23f" stroke="#2a2a2a" stroke-width="0.6"/>` +
+    `<circle cx="${hx + 6}" cy="${fy - 5}" r="1" fill="#2a2a2a"/>` +
+    [0, 1, 2].map(k => {
+      const a = -Math.PI / 2 + k * 2.094
+      const p = d => `${num(hx + 6 + Math.cos(a + d) * 3.6)} ${num(fy - 5 + Math.sin(a + d) * 3.6)}`
+      return `<path d="M${hx + 6} ${fy - 5}L${p(-0.5)}L${p(0.5)}Z" fill="#2a2a2a"/>`
+    }).join('') + `</g>`)
+  for (let i = 0; i < 20; i++) front.px(`${fill('#ffffff', 0.7)} class="tw${1 + (i % 3)}"`, rand() * W, rand() * HY, 0.6, 0.6)
+  lightPanel(hud, isTall ? 8 : 8, 8, 58, 'DOSIMETER', [
+    [['DOSE ', '#6a6a7a'], ['0.42 USV/H', '#1a8a4a', 'blink']],
+    [['ZONE ', '#6a6a7a'], ['30 KM', '#a86a00']],
+    [['STATUS ', '#6a6a7a'], ['SAFE TO CODE', '#2a6ad8']],
+  ], '#a86a00')
+  return lightScene(W, H, [bg, far, mid, front], [hud])
+}
+
 // ---------------------------------------------------------------- reactions
 // Drawn over any scene for a few seconds, as SVG pieces in the scene's own
 // coordinates: fireworks when Claude finishes a long task, a red alert when tests fail.
@@ -3259,32 +3749,38 @@ function alert(W, H) {
 
 // ---------------------------------------------------------------- output
 const BUILDERS = {
-  'neon-miami': { label: 'Neon Miami', sky: C.bg, wide: () => wide(), tall: () => tall() },
-  'main-stage': { label: 'Main Stage', sky: '#020208', wide: () => mainStage(320, 180), tall: () => mainStage(180, 320) },
-  'dune-sea': { label: 'Dune Sea', sky: '#2a1640', wide: () => desert(320, 180), tall: () => desert(180, 320) },
-  'light-grid': { label: 'Light Grid', sky: '#000308', wide: () => lightGrid(320, 180), tall: () => lightGrid(180, 320) },
-  'deep-space': { label: 'Deep Space', sky: '#02010a', wide: () => space(320, 180), tall: () => space(180, 320) },
-  'dj-booth': { label: 'DJ Booth', sky: '#08060e', wide: () => djBooth(320, 180), tall: () => djBooth(180, 320) },
-  'neon-rain': { label: 'Neon Rain', sky: RC.bg, wide: () => cyber(320, 180), tall: () => cyber(180, 320) },
-  'thunder-amps': { label: 'Thunder Amps', sky: '#05060c', wide: () => thunderAmps(320, 180), tall: () => thunderAmps(180, 320) },
-  'grand-prix': { label: 'Grand Prix', sky: '#03040c', wide: () => race(320, 180), tall: () => race(180, 320) },
-  'rooftop-cats': { label: 'Rooftop Cats', sky: '#07061a', wide: () => cats(320, 180), tall: () => cats(180, 320) },
-  'robot-disco': { label: 'Robot Disco', sky: '#06020e', wide: () => robotDisco(320, 180), tall: () => robotDisco(180, 320) },
-  'blocklands-day': { label: 'Blocklands Day', sky: VD.bg, wide: () => voxel(320, 180, true), tall: () => voxel(180, 320, true) },
-  'ai-lab': { label: 'AI Lab', sky: '#02050e', wide: () => ai(320, 180), tall: () => ai(180, 320) },
-  'static-stage': { label: 'Static Stage', sky: '#050506', wide: () => staticStage(320, 180), tall: () => staticStage(180, 320) },
-  'black-hole': { label: 'Black Hole', sky: '#010103', wide: () => blackHole(320, 180), tall: () => blackHole(180, 320) },
-  'loop-room': { label: 'Loop Room', sky: '#120c1a', wide: () => loopRoom(320, 180), tall: () => loopRoom(180, 320) },
-  'night-ops': { label: 'Night Ops', sky: OC.bg, wide: () => ops(320, 180), tall: () => ops(180, 320) },
-  'dog-park': { label: 'Dog Park', sky: '#4f9fef', wide: () => dogs(320, 180), tall: () => dogs(180, 320) },
-  'stadium-rock': { label: 'Stadium Rock', sky: '#2a1a50', wide: () => stadiumRock(320, 180), tall: () => stadiumRock(180, 320) },
-  'desert-lab': { label: 'Desert Lab', sky: '#04050d', wide: () => lab(320, 180), tall: () => lab(180, 320) },
-  'gargoyle-city': { label: 'Gargoyle City', sky: '#04060c', wide: () => gothic(320, 180), tall: () => gothic(180, 320) },
-  blocklands: { label: 'Blocklands Night', sky: VC.bg, wide: () => voxel(320, 180), tall: () => voxel(180, 320) },
+  'neon-miami': { mode: 'dark', label: 'Neon Miami', sky: C.bg, wide: () => wide(), tall: () => tall() },
+  'main-stage': { mode: 'dark', label: 'Main Stage', sky: '#020208', wide: () => mainStage(320, 180), tall: () => mainStage(180, 320) },
+  'dune-sea': { mode: 'dark', label: 'Dune Sea', sky: '#2a1640', wide: () => desert(320, 180), tall: () => desert(180, 320) },
+  'light-grid': { mode: 'dark', label: 'Light Grid', sky: '#000308', wide: () => lightGrid(320, 180), tall: () => lightGrid(180, 320) },
+  'deep-space': { mode: 'dark', label: 'Deep Space', sky: '#02010a', wide: () => space(320, 180), tall: () => space(180, 320) },
+  'dj-booth': { mode: 'dark', label: 'DJ Booth', sky: '#08060e', wide: () => djBooth(320, 180), tall: () => djBooth(180, 320) },
+  'neon-rain': { mode: 'dark', label: 'Neon Rain', sky: RC.bg, wide: () => cyber(320, 180), tall: () => cyber(180, 320) },
+  'thunder-amps': { mode: 'dark', label: 'Thunder Amps', sky: '#05060c', wide: () => thunderAmps(320, 180), tall: () => thunderAmps(180, 320) },
+  'grand-prix': { mode: 'dark', label: 'Grand Prix', sky: '#03040c', wide: () => race(320, 180), tall: () => race(180, 320) },
+  'rooftop-cats': { mode: 'dark', label: 'Rooftop Cats', sky: '#07061a', wide: () => cats(320, 180), tall: () => cats(180, 320) },
+  'robot-disco': { mode: 'dark', label: 'Robot Disco', sky: '#06020e', wide: () => robotDisco(320, 180), tall: () => robotDisco(180, 320) },
+  'blocklands-day': { mode: 'light', label: 'Blocklands Day', sky: VD.bg, wide: () => voxel(320, 180, true), tall: () => voxel(180, 320, true) },
+  'ai-lab': { mode: 'dark', label: 'AI Lab', sky: '#02050e', wide: () => ai(320, 180), tall: () => ai(180, 320) },
+  'static-stage': { mode: 'dark', label: 'Static Stage', sky: '#050506', wide: () => staticStage(320, 180), tall: () => staticStage(180, 320) },
+  'black-hole': { mode: 'dark', label: 'Black Hole', sky: '#010103', wide: () => blackHole(320, 180), tall: () => blackHole(180, 320) },
+  'loop-room': { mode: 'dark', label: 'Loop Room', sky: '#120c1a', wide: () => loopRoom(320, 180), tall: () => loopRoom(180, 320) },
+  'night-ops': { mode: 'dark', label: 'Night Ops', sky: OC.bg, wide: () => ops(320, 180), tall: () => ops(180, 320) },
+  'dog-park': { mode: 'light', label: 'Dog Park', sky: '#4f9fef', wide: () => dogs(320, 180), tall: () => dogs(180, 320) },
+  'stadium-rock': { mode: 'dark', label: 'Stadium Rock', sky: '#2a1a50', wide: () => stadiumRock(320, 180), tall: () => stadiumRock(180, 320) },
+  'desert-lab': { mode: 'dark', label: 'Desert Lab', sky: '#04050d', wide: () => lab(320, 180), tall: () => lab(180, 320) },
+  'gargoyle-city': { mode: 'dark', label: 'Gargoyle City', sky: '#04060c', wide: () => gothic(320, 180), tall: () => gothic(180, 320) },
+  blocklands: { mode: 'dark', label: 'Blocklands Night', sky: VC.bg, wide: () => voxel(320, 180), tall: () => voxel(180, 320) },
+  'portal-garage': { mode: 'light', label: 'Portal Garage', sky: '#efe4cc', wide: () => portalGarage(320, 180), tall: () => portalGarage(180, 320) },
+  'crayon-town': { mode: 'light', label: 'Crayon Town', sky: '#7cc8ff', wide: () => crayonTown(320, 180), tall: () => crayonTown(180, 320) },
+  'shadow-office': { mode: 'light', label: 'Shadow Office', sky: '#f2f5f7', wide: () => shadowOffice(320, 180), tall: () => shadowOffice(180, 320) },
+  'sky-lot': { mode: 'light', label: 'Sky Lot', sky: '#5ab4ff', wide: () => skyLot(320, 180), tall: () => skyLot(180, 320) },
+  'shape-games': { mode: 'light', label: 'Shape Games', sky: '#fbe8f0', wide: () => shapeGames(320, 180), tall: () => shapeGames(180, 320) },
+  'exclusion-zone': { mode: 'light', label: 'Exclusion Zone', sky: '#d8dcd4', wide: () => exclusionZone(320, 180), tall: () => exclusionZone(180, 320) },
 }
 const out = {}
 for (const [name, b] of Object.entries(BUILDERS)) {
-  out[name] = { label: b.label, sky: b.sky }
+  out[name] = { label: b.label, sky: b.sky, mode: b.mode }
   for (const layout of ['wide', 'tall']) {
     const { W, H, body, defs: extra = '', scan = true } = b[layout]()
     const svg = wrap(W, H, body, true, extra, scan)
@@ -3317,7 +3813,7 @@ export const STYLE = ${JSON.stringify(STYLE)}
 export const SCENE_NAMES = ${JSON.stringify(names)} as const
 export type SceneName = (typeof SCENE_NAMES)[number]
 
-export const SCENES: { readonly [K in SceneName]: { readonly label: string; readonly sky: string; readonly wide: string; readonly tall: string } } = {
+export const SCENES: { readonly [K in SceneName]: { readonly label: string; readonly sky: string; readonly mode: 'dark' | 'light'; readonly wide: string; readonly tall: string } } = {
 ${names.map(n => `  ${JSON.stringify(n)}: ${ident(n)},`).join('\n')}
 }
 
