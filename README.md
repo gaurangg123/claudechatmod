@@ -1,39 +1,11 @@
-# Neon Miami
+# Neon Miami for Claude Code
 
-A night-time pixel-art theme for Claude Code, kept dark in the middle so the chat stays easy to
-read. Five original scenes take turns behind the conversation. Each is a mood drawn from scratch
-and uses no game's characters, logos, maps or interface:
-
-| Scene | What's in it |
-| --- | --- |
-| **Neon Miami** | Synthwave sunset, neon skyline, palm trees, supercars on a causeway, a CRT and a cassette on the desk |
-| **Neon Rain** | A rainy neon megacity: glyph signs, a hologram billboard, hover cars, an elevated train, a noodle stall |
-| **Blocklands Day** | A sunny blocky world: grassy hills, fluffy clouds, blossom trees, a lake, a cabin, a floating island |
-| **Blocklands Night** | The same world at night: full moon, glowing crystals, lanterns, fireflies, a lit cabin |
-| **Night Ops** | A night-vision base: watchtower searchlight, helicopter, radar scope, containers, a mission panel |
-
-## Screenshots
-
-Mockups of the Claude Code desktop app with each scene behind the chat, drawn with the theme's
-own glass and text colors. The scenes animate in the app: cars drive, rain falls, clouds drift.
+Animated pixel-art scenes behind your Claude Code chat, with neon text colors and a neon skyline
+in the terminal.
 
 ![Neon Miami](screenshots/neon-miami.png)
 
-| | |
-| --- | --- |
-| ![Blocklands Day](screenshots/blocklands-day.png) | ![Neon Rain](screenshots/neon-rain.png) |
-| **Blocklands Day** | **Neon Rain** |
-| ![Night Ops](screenshots/night-ops.png) | ![Blocklands Night](screenshots/blocklands.png) |
-| **Night Ops** | **Blocklands Night** |
-
 ## Install
-
-### One step (recommended)
-
-Needs [Claude Code](https://claude.com/claude-code) and `git`. The installer adds the plugin for
-your user and turns on the Neon Miami terminal colors, keeping your other settings (it saves a
-backup as `settings.json.before-neon-miami.bak`). Start a new Claude Code session afterwards and
-the theme is on.
 
 **Windows** (PowerShell):
 
@@ -47,33 +19,45 @@ irm https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.ps1
 curl -fsSL https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.sh | bash
 ```
 
-Read [install.ps1](install.ps1) or [install.sh](install.sh) first if you like: each runs
-`claude plugin install` and sets `"theme"` in `~/.claude/settings.json`, nothing else.
+Then start a new Claude Code session. That's it.
 
-### By hand
+You need [Claude Code](https://claude.com/claude-code) and `git`.
 
-At the prompt of a Claude Code terminal session:
+## Use
 
+A new scene appears every minute. Type `/neon` in Claude Code to change things:
+
+| Command | What it does |
+| --- | --- |
+| `/neon next` | Show the next scene |
+| `/neon scene neon-rain` | Pick a scene |
+| `/neon slideshow off` | Keep the current scene |
+| `/neon motion off` | Stop the animation |
+
+## Scenes
+
+| | |
+| --- | --- |
+| ![Blocklands Day](screenshots/blocklands-day.png) **Blocklands Day** | ![Neon Rain](screenshots/neon-rain.png) **Neon Rain** |
+| ![Night Ops](screenshots/night-ops.png) **Night Ops** | ![Blocklands Night](screenshots/blocklands.png) **Blocklands Night** |
+
+All scenes are original art. The pictures are mockups of the desktop app.
+
+## Uninstall
+
+```bash
+claude plugin uninstall neon-miami@claudechatmod
 ```
-/plugin install neon-miami --marketplace gaurangg123/claudechatmod
-```
 
-Answer `y` to add the marketplace, then press Enter for the user scope.
+Then pick another theme with `/theme`.
 
-From a shell:
+<details>
+<summary>More options</summary>
 
-```
-claude plugin install neon-miami --marketplace gaurangg123/claudechatmod
-```
+**Install by hand.** In a Claude Code terminal session:
+`/plugin install neon-miami --marketplace gaurangg123/claudechatmod`
 
-In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins,
-Add marketplace with `gaurangg123/claudechatmod`, then Add plugin.
-
-Installing needs `git` on the computer; no GitHub account is needed.
-
-### In a project's cloud sessions
-
-Add this to the project's `.claude/settings.json`, so sessions on that repository load the theme:
+**Cloud sessions.** Add this to the project's `.claude/settings.json`:
 
 ```json
 {
@@ -84,35 +68,10 @@ Add this to the project's `.claude/settings.json`, so sessions on that repositor
 }
 ```
 
-## What it changes
+**Change the art.** See [dev/README.md](dev/README.md).
 
-| Where | What you get |
-| --- | --- |
-| Desktop app (Code tab) | The scene behind the chat under dark frosted panels, changing every minute, and a neon text palette tinted to match each scene |
-| Mobile app (a session from this computer) | The same scenes, laid out for a tall screen |
-| Terminal | A 4-row pixel skyline band above the prompt, neon spinner words and a **Neon Miami** color theme |
-
-## Controls
-
-```
-/neon                       show what is on
-/neon scene <name>          neon-miami, blocklands-day, neon-rain, night-ops or blocklands
-/neon next                  the next scene now
-/neon slideshow on|off      rotate through the scenes (on by default)
-/neon every <minutes>       how long each scene stays (1 by default)
-/neon backdrop on|off       the scene behind the chat (desktop, mobile)
-/neon band on|off           the pixel skyline above the prompt (terminal)
-/neon motion on|off         blinking lights, rain and the radar sweep
-```
-
-Your choices are remembered across sessions. The slideshow follows the clock, so every window shows the same scene.
-Terminal colors: pick **Neon Miami** in `/theme`.
-
-## Changing the art
-
-The scenes are generated: edit `scripts/build-scene.mjs` and run `node scripts/build-scene.mjs` to
-rewrite `hooks/scene.ts`. Add `--preview <folder>` to also write each scene's SVGs there.
+</details>
 
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
+GPL-3.0
