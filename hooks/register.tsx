@@ -55,6 +55,15 @@ const ALT: { readonly [K in SceneName]: string } = {
   'neon-rain': 'Neon Rain: a rainy neon megacity with glyph signs, a hologram billboard, hover cars and an elevated train',
   'night-ops': 'Night Ops: a night-vision base with a watchtower searchlight, a helicopter, a radar scope and a mission panel',
   blocklands: 'Blocklands Night: a blocky voxel world at night with a full moon, blossom trees, a lit cabin and a floating island',
+  'dune-sea': 'Dune Sea: desert dunes at sunset with a big sun, cacti, a camel caravan and a rolling tumbleweed',
+  'deep-space': 'Deep Space: a ringed planet, a spinning space station and a drifting astronaut above a planet at night',
+  'grand-prix': 'Grand Prix: a night race under floodlights with start lights, a packed grandstand and open-wheel cars',
+  'rooftop-cats': 'Rooftop Cats: cats on the rooftops under a big moon, one asleep, one on a chimney and one walking the wall',
+  'ai-lab': 'AI Lab: server racks, a neural network lighting up, a training run, a loss curve and a little robot',
+  'black-hole': 'Black Hole: a glowing black hole over an ocean world with a giant wave and a turning ring station',
+  'dog-park': 'Dog Park: a sunny park with dogs chasing a ball, jumping for a frisbee and napping under a tree',
+  'desert-lab': 'Desert Lab: an old camper van under desert stars, glowing flasks on a lab bench and red mesas',
+  'gargoyle-city': 'Gargoyle City: a gothic city in the rain with a searchlight on the clouds and a caped figure on a ledge',
 }
 
 function pick(list: readonly string[], seed: string): string {
@@ -153,7 +162,7 @@ async function savePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
 }
 
 // One readable text palette for every scene, sent once with the backdrop: light
-// text, a soft neon accent that sits well on all five scenes.
+// text, a soft neon accent that sits well on every scene.
 const ACCENT = '#ff7ac6'
 const PALETTE: ThemeColors = {
   v: 1,
@@ -326,7 +335,7 @@ export const register: Register = on => {
   // A red alert when a test command fails; a passing run clears it.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const result = await next(e)
-    const command = String((e.input as { command?: unknown }).command ?? '')
+    const command = String(e.command ?? '')
     if (TEST_COMMAND.test(command)) {
       const failed = 'isError' in result && result.isError === true
       if (failed) await react($, 'alert', ALERT_MS).catch(() => undefined)

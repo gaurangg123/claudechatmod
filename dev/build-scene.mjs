@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Neon Miami: builds hooks/scene.ts, the pixel-art scenes the mod draws behind
-// the conversation (wide for the desktop app, tall for the mobile app): Neon
-// Miami, Neon Rain, Blocklands and Night Ops, which the slideshow rotates through.
+// the conversation (wide for the desktop app, tall for the mobile app), which
+// the slideshow rotates through. The list is BUILDERS, near the end.
 //
 //   node dev/build-scene.mjs                  writes hooks/scene.ts
 //   node dev/build-scene.mjs --preview <dir>  also writes preview-<scene>-wide/tall.svg there
@@ -10,7 +10,7 @@
 // crisp edges, so it reads as 8/16-bit pixel art at any window size. The centre
 // is kept dark for the chat; the art lives along the bottom and in the corners.
 
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -180,7 +180,7 @@ const FONT3 = {
   '.': '000000000000010', ',': '000000000010100', '"': '101101000000000', "'": '010010000000000',
   _: '000000000000111', '-': '000000111000000', '+': '000010111010000', '*': '000101010101000',
   '!': '010010010000010', '?': '110001010000010', '&': '010101010101011', '|': '010010010010010',
-  '$': '011110010011110', '#': '101111101111101', ' ': '000000000000000',
+  '$': '011110010011110', '#': '101111101111101', '%': '101001010100101', ' ': '000000000000000',
 }
 const FONT5 = {
   A: '0111010001111111000110001', C: '0111110000100001000001111', D: '1111010001100011000111110',
@@ -740,6 +740,32 @@ const STYLE = `<style>
 .fy{animation:fy 28s linear infinite}
 @keyframes pu{0%,100%{opacity:.7}50%{opacity:1}}
 .pu{animation:pu 4s ease-in-out infinite}
+@keyframes up{0%{transform:translateY(0);opacity:0}20%{opacity:.8}100%{transform:translateY(-14px);opacity:0}}
+.up1{animation:up 3s linear infinite}
+.up2{animation:up 3s linear infinite -1s}
+.up3{animation:up 3s linear infinite -2s}
+@keyframes bo{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.bo{animation:bo 4s ease-in-out infinite}
+.hop{animation:bo .5s ease-in-out infinite}
+@keyframes jp{0%,100%{transform:translateY(0)}45%{transform:translateY(-9px)}}
+.jp{animation:jp 1.6s ease-in-out infinite}
+.rs{animation:sw 40s linear infinite}
+@keyframes ss{0%,80%{transform:translate(0,0);opacity:0}82%{opacity:1}100%{transform:translate(-70px,36px);opacity:0}}
+.ss{animation:ss 7s linear infinite}
+.d5{animation:dr 2.6s linear infinite}
+.d6{animation:dr 3.3s linear infinite -1.4s}
+.d7{animation:dr 4.1s linear infinite -2.6s}
+.cw{animation:dr 70s linear infinite -25s}
+.cw2{animation:dr 13s linear infinite -3s}
+.d5,.d6,.d7,.cw,.cw2,.rs,.bo,.jp,.hop{will-change:transform}
+@keyframes lt{0%,95%{opacity:0}96%{opacity:.45}97%{opacity:0}98%{opacity:.3}99%,100%{opacity:0}}
+.lt{animation:lt 9s steps(1,end) infinite}
+.wg{animation:sl 1.1s ease-in-out infinite}
+@keyframes ey{0%,92%{opacity:1}93%,97%{opacity:0}98%,100%{opacity:1}}
+.ey{animation:ey 4.5s steps(1,end) infinite}
+@keyframes wv{0%,100%{transform:skewY(0)}50%{transform:skewY(10deg)}}
+.wv{animation:wv .8s ease-in-out infinite}
+${[0, 1, 2, 3, 4].map(i => `@keyframes g${i}{0%,${9 + 10 * i}%{opacity:.12}${10 + 10 * i}%,70%{opacity:1}71%,100%{opacity:.12}}.g${i}{animation:g${i} 6s steps(1,end) infinite}`).join('\n')}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.gl{opacity:0}}
 </style>`
 
@@ -1531,6 +1557,1073 @@ function ops(W, H) {
   return { W, H, defs: extra, body: bg.svg() + art.svg() + glow.svg() + calm + hud.svg() + hudGlow.svg() }
 }
 
+// ---------------------------------------------------------------- the newer scenes
+// Nine more original scenes: a desert at sunset, a desert lab at night, deep
+// space, a black hole over an ocean world, a gothic city in the rain, a night
+// race, an AI lab, cats on the rooftops and a dog park. Moods only: no show's,
+// film's, team's or hero's names, logos or characters.
+
+// An ASCII sprite: each character a colour from `colors` ('.' is empty), with an
+// optional outline drawn first.
+function sprite(L, rows, x, y, s, colors, { flip = false, outline } = {}) {
+  const g = new Grid()
+  const w = Math.max(...rows.map(r => r.length))
+  rows.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) if (row[c] !== '.') g.set(flip ? w - 1 - c : c, r, row[c])
+  })
+  if (outline) g.outline().draw(L, x, y, s, () => outline)
+  g.draw(L, x, y, s, ch => colors[ch] ?? colors['#'])
+  return [x, y, w * s, rows.length * s]
+}
+
+function disc(L, cx, cy, r, style) {
+  for (let dy = -r; dy < r; dy++) {
+    const hw = Math.round(Math.sqrt(Math.max(0, r * r - (dy + 0.5) * (dy + 0.5))))
+    if (hw > 0) L.px(style, Math.round(cx) - hw, Math.round(cy) + dy, hw * 2, 1)
+  }
+}
+
+const svgOf = (...layers) => layers.map(l => l.svg()).join('')
+const rot = (x, y) => `style="transform-origin:${num(x)}px ${num(y)}px"`
+const radial = (id, color, a, b = 0) =>
+  `<radialGradient id="${id}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></radialGradient>`
+const calmOf = (id, color, a, b) =>
+  `<radialGradient id="${id}" cx="0.5" cy="0.4" r="0.55"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="0.6" stop-color="${color}" stop-opacity="${b}"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></radialGradient>`
+const shooting = (x, y) =>
+  `<g class="ss" opacity="0"><rect x="${num(x)}" y="${num(y)}" width="14" height="0.6" fill="url(#streak)" transform="rotate(-27 ${num(x)} ${num(y)})"/></g>`
+const STREAK = `<linearGradient id="streak"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>`
+
+// ---- Dune Sea: a desert at sunset
+const CACTUS = ['..##....', '..##....', '#.##....', '#.##..#.', '####..#.', '..#####.', '..##....', '..##....', '..##....', '..##....']
+const CAMEL = ['.........##.', '..##....###.', '.####...##..', '#######.##..', '##########..', '.########...', '.#.#..#.#...', '.#.#..#.#...']
+
+function desert(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 811 : 812)
+  const HY = Math.round(H * (isTall ? 0.7 : 0.6))
+  const bg = new Layer()
+  const sunL = new Layer()
+  const dunes = [0, 1, 2, 3].map(() => new Layer())
+  const front = new Layer()
+  bg.px(fill('#2a1640'), 0, 0, W, H)
+  band(bg, W, 0, HY + 6, [[0, '#2a1640'], [0.35, '#6a2a5e'], [0.62, '#c8506a'], [0.82, '#ff8a4c'], [1, '#ffc46b']])
+  dots(bg, rand, [0, 0, W, HY * 0.3], isTall ? 30 : 45, ['#ffffff', '#ffd9f0'], [0.25, 0.6], 0.35)
+  const sx = Math.round(W / 2)
+  const sr = isTall ? 18 : 22
+  const sy = HY - 2
+  bg.raw(`<ellipse cx="${sx}" cy="${sy}" rx="${sr * 3.4}" ry="${sr * 1.9}" fill="url(#heat)" class="pu"/>`)
+  disc(sunL, sx, sy, sr, fill('#ffc36a'))
+  disc(sunL, sx, sy - 1, sr - 4, fill('#ffe39a'))
+  disc(sunL, sx, sy - 2, sr - 9, fill('#fff6d0'))
+  for (const [dy, f, k] of [[-5, 0.95, 1], [-10, 0.85, 2], [-15, 0.6, 3]]) {
+    sunL.px(`${fill('#ff9a5a', 0.75)} class="tw${k}"`, sx - sr * f, sy + dy, sr * 2 * f, 0.7)
+  }
+  // vultures circling far off
+  moving(sunL, 'fy', a => {
+    for (const [bx, by] of isTall ? [[120, 60], [132, 54], [150, 70]] : [[240, 34], [252, 28], [268, 42]]) {
+      a.px(fill('#3a1a3a', 0.85), bx, by, 1.5, 0.6)
+      a.px(fill('#3a1a3a', 0.85), bx + 1.5, by + 0.6, 1, 0.6)
+      a.px(fill('#3a1a3a', 0.85), bx + 2.5, by, 1.5, 0.6)
+    }
+  })
+  // the dunes: lit on the side facing the sun, shaded on the other
+  const specs = isTall
+    ? [[HY + 3, 2.5, 0.05], [HY + 22, 8, 0.035], [HY + 46, 12, 0.03], [H - 24, 9, 0.045]]
+    : [[HY + 3, 2.5, 0.04], [HY + 16, 7, 0.028], [HY + 34, 10, 0.022], [H - 16, 8, 0.03]]
+  const tones = [['#c96a4a', '#9a4a3e'], ['#de8a52', '#b0603e'], ['#eea562', '#c47648'], ['#f6c27a', '#d68c52']]
+  const ridge = specs.map(([base, amp, f]) => {
+    const ph = rand() * 6.28
+    return x => base - amp * (0.6 * Math.sin(x * f + ph) + 0.4 * Math.sin(x * f * 2.3 + ph * 1.7))
+  })
+  // the caravan walks along the far ridge, its feet behind the first dune
+  moving(sunL, 'cw', a => {
+    const s = isTall ? 0.8 : 1
+    const x0 = isTall ? 40 : 90
+    for (let k = 0; k < 3; k++) sprite(a, CAMEL, x0 + k * 15 * s, specs[0][0] - 6.5 * s, s, { '#': fill('#4a1e36') })
+    a.px(fill('#4a1e36'), x0 + 3 * s, specs[0][0] - 9.5 * s, 2 * s, 3 * s)
+  })
+  ridge.forEach((yAt, k) => {
+    const [lit, shade] = tones[k]
+    for (let x = 0; x < W; x++) {
+      const y = Math.round(yAt(x + 0.5))
+      const down = yAt(x + 1) > yAt(x)
+      dunes[k].px(fill(down ? shade : lit), x, y, 1, H - y)
+      if (!down) dunes[k].px(fill('#ffe0a0', 0.45), x, y, 1, 0.6)
+    }
+  })
+  // ripples on the nearest dune
+  for (let i = 0; i < (isTall ? 14 : 22); i++) {
+    const x = Math.floor(rand() * W)
+    const y = Math.round(ridge[3](x)) + 3 + Math.floor(rand() * 10)
+    front.px(fill('#d68c52', 0.6), x, y, 3 + Math.floor(rand() * 5), 0.5)
+  }
+  // cacti and a road sign
+  const cactus = (x, k, s) => {
+    const y = Math.round(ridge[k](x + 4 * s)) + 1
+    sprite(k === 3 ? front : dunes[k], CACTUS, x, y - 10 * s, s, { '#': fill('#3a6a3a') }, { outline: fill('#2a1a24', 0.8) })
+  }
+  cactus(isTall ? 8 : 14, 3, 1.6)
+  cactus(isTall ? 146 : 290, 3, 1.4)
+  cactus(isTall ? 30 : 60, 2, 0.9)
+  cactus(isTall ? 130 : 250, 2, 0.8)
+  {
+    const x = isTall ? W - 60 : W - 86
+    const y = Math.round(ridge[3](x)) + 2
+    front.px(fill('#5a3a2a'), x + 10, y - 16, 1, 16)
+    front.px(fill('#2e6a4a'), x, y - 22, 26, 8)
+    front.px(fill('#f4efe0', 0.9), x + 0.5, y - 21.5, 25, 0.5)
+    text(front, 'OASIS', x + 2, y - 20.6, 0.6, fill('#f4efe0'))
+    text(front, '42 KM', x + 2, y - 16.9, 0.5, fill('#f4efe0', 0.85))
+  }
+  // a tumbleweed rolling past
+  {
+    const tw = new Layer()
+    const tx = isTall ? 40 : 80
+    const ty = H - 7
+    for (let a = 0; a < 24; a++) {
+      const r = 2.4 + (a % 3) * 0.6
+      tw.px(fill(a % 2 ? '#8a5a32' : '#b07a42'), tx + Math.cos(a * 0.9) * r, ty + Math.sin(a * 0.9) * r, 0.8, 0.8)
+    }
+    front.raw(`<g class="d4"><g class="sw" ${rot(tx, ty)}>${tw.svg()}</g></g>`)
+  }
+  const extra = radial('heat', '#ffb36b', 0.6) + calmOf('calmWarm', '#1a0820', 0.45, 0.25)
+  return { W, H, defs: extra, scan: false, body: svgOf(bg, sunL, ...dunes, front) + `<rect width="${W}" height="${H}" fill="url(#calmWarm)"/>` }
+}
+
+// ---- Desert Lab: an old camper van under desert stars, a lab bench beside it
+const FLASK = ['.##.', '.##.', '#ll#', 'llll', 'llll']
+function camper(art, glow, bg, x, y, s) {
+  const P = (dx, dy, w, h, c, o) => art.px(fill(c, o), x + dx * s, y + dy * s, w * s, h * s)
+  P(-2, 0, 50, 1.5, '#000', 0.45)
+  P(0, -17, 40, 14, '#d9cfae')
+  P(0, -18, 40, 1, '#ece4c8')
+  P(40, -12, 6, 9, '#d9cfae')
+  P(40, -14, 3, 2, '#d9cfae')
+  P(41, -11, 4, 3, '#2a3550')
+  P(0, -9, 46, 1.6, '#7a4a2a')
+  P(0, -6.8, 46, 0.8, '#a8703a')
+  P(0, -4, 46, 1.2, '#8a8270')
+  P(15, -15, 6, 11, '#c2b590')
+  P(20, -20, 4, 2, '#8a8a8a')
+  glow.px(`${fill('#ffd27a', 0.95)} class="fl"`, x + 4 * s, y - 15 * s, 7 * s, 4 * s)
+  glow.px(fill('#ffd27a', 0.9), x + 27 * s, y - 15 * s, 8 * s, 4 * s)
+  glow.px(fill('#ffe6a0', 0.8), x + 15 * s, y - 15 * s, 1 * s, 11 * s)
+  bg.raw(`<ellipse cx="${num(x + 17 * s)}" cy="${num(y)}" rx="${num(20 * s)}" ry="${num(5 * s)}" fill="url(#spill)"/>`)
+  for (const wx of [8, 36]) {
+    disc(art, x + wx * s, y - 2 * s, 3 * s, fill('#0c0a10'))
+    art.px(fill('#7a7a80'), x + (wx - 1) * s, y - 3 * s, 2 * s, 2 * s)
+  }
+  for (const k of [1, 2, 3]) glow.px(`${fill('#e8ecf4', 0.45)} class="up${k}"`, x + (21 + k * 0.6) * s, y - 22 * s, 1.5 * s, 1.5 * s)
+}
+
+function lab(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 3131 : 3132)
+  const HY = Math.round(H * (isTall ? 0.8 : 0.74))
+  const bg = new Layer()
+  const far = new Layer()
+  const art = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#04050d'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#04050d'], [0.45, '#0c1636'], [0.78, '#2a2d5e'], [0.93, '#6a3f6a'], [1, '#b0605a']])
+  const mx = Math.round(W * (isTall ? 0.8 : 0.86))
+  const my = Math.round(H * (isTall ? 0.12 : 0.17))
+  dots(bg, rand, [0, 0, W, HY * 0.75], isTall ? 110 : 170, ['#ffffff', '#ffffff', '#cfe0ff', '#ffe6b0'], [0.25, 0.8], 0.3, [[mx - 12, my - 12, 24, 24]])
+  bg.raw(`<circle cx="${mx}" cy="${my}" r="26" fill="url(#moonHalo)"/>`)
+  bg.raw(shooting(W * 0.42, H * 0.1))
+  disc(far, mx, my, 8, fill('#f4ecd0'))
+  disc(far, mx + 3, my - 2, 7, fill('#0a1230'))
+  // mesas
+  const mesas = isTall ? [[-10, 70, 30], [104, 90, 40]] : [[-6, 70, 26], [60, 46, 14], [192, 62, 34], [262, 80, 20]]
+  for (const [x, w, h] of mesas) {
+    for (let r = 0; r < h; r++) {
+      const rw = w * (0.7 + 0.3 * (r / h) ** 2)
+      far.px(fill(r === 0 ? '#3d2a4a' : r % 6 === 5 ? '#241a38' : '#1d1530'), x + (w - rw) / 2, HY - h + r, rw, 1)
+    }
+  }
+  band(far, W, HY, H, [[0, '#3a2626'], [1, '#120a0e']])
+  for (let i = 0; i < (isTall ? 40 : 70); i++) far.px(fill('#5a3a32', op1(0.3 + rand() * 0.4)), Math.floor(rand() * W), HY + 1 + Math.floor(rand() * (H - HY - 1)), 1, 0.5)
+  for (let i = 0; i < (isTall ? 5 : 9); i++) {
+    const x = Math.floor(rand() * W)
+    const y = HY + 2 + Math.floor(rand() * (H - HY - 6))
+    art.px(fill('#2a3a26'), x, y, 3, 1.5)
+    art.px(fill('#2a3a26'), x + 0.5, y - 1, 2, 1)
+  }
+  // the camper, the lab bench and a camp chair
+  const s = isTall ? 0.9 : 1
+  const cx = Math.round(isTall ? W * 0.42 : W * 0.62)
+  const cy = isTall ? HY + 18 : HY + 12
+  camper(art, glow, bg, cx, cy, s)
+  {
+    const tx = cx - 28 * s
+    const ty = cy - 8 * s
+    art.px(fill('#9a9aa0'), tx, ty, 20 * s, 1 * s)
+    art.px(fill('#6a6a70'), tx + 1 * s, ty + 1 * s, 0.6 * s, 7 * s)
+    art.px(fill('#6a6a70'), tx + 18 * s, ty + 1 * s, 0.6 * s, 7 * s)
+    ;[['#5dffb0', 2], ['#5fd3ff', 8], ['#ffd27a', 14]].forEach(([c, dx], k) => {
+      sprite(glow, FLASK, tx + dx * s, ty - 5 * s, s, { '#': fill('#cfe0ff', 0.55), l: fill(c, 0.9) })
+      glow.px(`${fill(c, 0.6)} class="up${1 + k}"`, tx + (dx + 1.5) * s, ty - 7 * s, 0.8 * s, 0.8 * s)
+    })
+    glow.px(`${fill('#4aa8ff', 0.9)} class="fl"`, tx + 9 * s, ty - 1.5 * s, 2 * s, 1.5 * s)
+    const chx = cx + 52 * s
+    art.px(fill('#2a5a8a'), chx, cy - 7 * s, 6 * s, 1.2 * s)
+    art.px(fill('#2a5a8a'), chx + 5 * s, cy - 12 * s, 1.2 * s, 6 * s)
+    art.px(fill('#5a5a60'), chx, cy - 6 * s, 0.6 * s, 6 * s)
+    art.px(fill('#5a5a60'), chx + 5 * s, cy - 6 * s, 0.6 * s, 6 * s)
+  }
+  for (const [x, k] of isTall ? [[10, 1.4], [150, 1.2]] : [[16, 1.6], [120, 1], [292, 1.4]]) {
+    sprite(art, CACTUS, x, HY + 6 - 10 * k, k, { '#': fill('#17261a') })
+  }
+  panel(hud, hudGlow, 8, 8, 60, 'LAB NOTES', [
+    [['C8H10N4O2', '#7fffd4']],
+    [['= COFFEE', '#ffd27a']],
+    [['PURITY ', '#8a9ab8'], ['99.1%', '#7fdfff']],
+    [['BUILD ', '#8a9ab8'], ['STABLE', '#5dffb0', 'blink']],
+  ], '#5fd3c8')
+  const extra = radial('moonHalo', '#f4ecd0', 0.25) + radial('spill', '#ffd27a', 0.35) + STREAK
+  return { W, H, defs: extra, body: svgOf(bg, far, art, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Deep Space: a ringed planet, a station, an astronaut drifting by
+const ASTRO = ['..####..', '.#vvvv#.', '.#vvvv#.', '..####..', 'p######.', 'p#.##.##', 'p#####.#', '.######.', '.##..##.', '.##..##.']
+
+function space(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 6060 : 6061)
+  const bg = new Layer()
+  const ringBack = new Layer()
+  const planet = new Layer()
+  const ringFront = new Layer()
+  const art = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const ground = new Layer()
+  const groundGlow = new Layer('filter="url(#glow)"')
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#02010a'), 0, 0, W, H)
+  for (const [fx, fy, rx, ry, id] of [[0.25, 0.35, 0.4, 0.32, 'nebA'], [0.78, 0.55, 0.36, 0.3, 'nebB'], [0.55, 0.15, 0.3, 0.18, 'nebC']]) {
+    bg.raw(`<ellipse cx="${num(W * fx)}" cy="${num(H * fy)}" rx="${num(W * rx)}" ry="${num(H * ry)}" fill="url(#${id})"/>`)
+  }
+  dots(bg, rand, [0, 0, W, H], isTall ? 160 : 240, ['#ffffff', '#ffffff', '#cfd8ff', '#ffd8f0', '#9ff0ff'], [0.2, 0.85], 0.3)
+  bg.raw(shooting(W * 0.6, H * 0.12))
+  // the ringed planet
+  const px0 = Math.round(W * (isTall ? 0.24 : 0.17))
+  const py0 = Math.round(H * (isTall ? 0.24 : 0.44))
+  const pr = isTall ? 15 : 19
+  const bands = ['#e8b07a', '#c77a4a', '#f0c890', '#b8643e', '#e0a26a', '#f4d4a0']
+  for (let dy = -pr; dy < pr; dy++) {
+    const hw = Math.round(Math.sqrt(Math.max(0, pr * pr - (dy + 0.5) * (dy + 0.5))))
+    const c = bands[Math.floor(((dy + pr) / (2 * pr)) * bands.length * 1.5) % bands.length]
+    planet.px(fill(c), px0 - hw, py0 + dy, Math.round(hw * 1.4), 1)
+    planet.px(fill(mix(c, '#140a1e', 0.55)), px0 - hw + Math.round(hw * 1.4), py0 + dy, hw * 2 - Math.round(hw * 1.4), 1)
+  }
+  const tilt = -0.32
+  for (let a = 0; a < Math.PI * 2; a += 0.025) {
+    for (const [k, c, o] of [[2.0, '#a88a6a', 0.75], [2.25, '#e0cca8', 0.9], [2.45, '#c8b088', 0.6]]) {
+      const ex = Math.cos(a) * pr * k
+      const ey = Math.sin(a) * pr * k * 0.26
+      const x = px0 + ex * Math.cos(tilt) - ey * Math.sin(tilt)
+      const y = py0 + ex * Math.sin(tilt) + ey * Math.cos(tilt)
+      ;(Math.sin(a) > 0 ? ringFront : ringBack).px(fill(c, o), Math.round(x * 2) / 2, Math.round(y * 2) / 2, 0.8, 0.6)
+    }
+  }
+  // a small moon
+  {
+    const x = Math.round(W * (isTall ? 0.62 : 0.34))
+    const y = Math.round(H * (isTall ? 0.1 : 0.2))
+    disc(art, x, y, 5, fill('#9a9ab0'))
+    disc(art, x + 1, y + 1, 4, fill('#7a7a92'))
+    art.px(fill('#5e5e74'), x - 2, y - 2, 1.5, 1.5)
+    art.px(fill('#5e5e74'), x + 1, y + 1, 1, 1)
+  }
+  // the station: a spinning ring, a hub and solar wings
+  {
+    const sx = Math.round(W * (isTall ? 0.76 : 0.83))
+    const sy = Math.round(H * (isTall ? 0.24 : 0.3))
+    const r = isTall ? 12 : 14
+    for (const dir of [-1, 1]) {
+      const wx = dir < 0 ? sx - r - 18 : sx + r + 3
+      art.px(fill('#7a8aa8'), dir < 0 ? sx - r - 3 : sx + r, sy - 0.3, 3, 0.6)
+      art.px(fill('#1f3a8a'), wx, sy - 4, 15, 8)
+      for (let gx = wx + 3; gx < wx + 15; gx += 3) art.px(fill('#4a6ad0', 0.7), gx, sy - 4, 0.4, 8)
+      art.px(fill('#4a6ad0', 0.7), wx, sy - 0.2, 15, 0.4)
+    }
+    const ring = new Layer()
+    ring.raw(`<circle cx="${sx}" cy="${sy}" r="${r}" fill="none" stroke="#8a96b4" stroke-width="1.4"/>`)
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2
+      ring.raw(`<line x1="${sx}" y1="${sy}" x2="${num(sx + Math.cos(a) * r)}" y2="${num(sy + Math.sin(a) * r)}" stroke="#5a6680" stroke-width="0.5"/>`)
+      ring.px(fill('#c8d0e4'), sx + Math.cos(a) * r - 1.5, sy + Math.sin(a) * r - 1.5, 3, 3)
+      ring.px(fill('#ffd27a', 0.9), sx + Math.cos(a) * r - 0.5, sy + Math.sin(a) * r - 0.5, 1, 1)
+    }
+    art.raw(`<g class="rs" ${rot(sx, sy)}>${ring.svg()}</g>`)
+    disc(glow, sx, sy, 3, fill('#d8e0f4'))
+    glow.px(`${fill('#ff4a5a')} class="blink"`, sx - 0.5, sy - 0.5, 1, 1)
+  }
+  // a satellite crossing, and the astronaut bobbing
+  moving(art, 'fy', (a, g) => {
+    const x = isTall ? 120 : 210
+    const y = Math.round(H * (isTall ? 0.42 : 0.16))
+    a.px(fill('#b8bcc8'), x, y, 4, 3)
+    a.px(fill('#2a4aa8'), x - 6, y + 1, 5, 1)
+    a.px(fill('#2a4aa8'), x + 5, y + 1, 5, 1)
+    g.px(`${fill('#5dffb0')} class="blink"`, x + 1.5, y - 1, 1, 1)
+  })
+  {
+    const ax = Math.round(W * (isTall ? 0.66 : 0.7))
+    const ay = Math.round(H * (isTall ? 0.52 : 0.52))
+    const astro = new Layer()
+    sprite(astro, ASTRO, ax, ay, 1.3, { '#': fill('#e8ecf4'), v: fill('#38c8ff'), p: fill('#a8b0c4') })
+    astro.px(fill('#ffb347'), ax + 3 * 1.3, ay + 5 * 1.3, 1.3, 1.3)
+    art.raw(`<g class="bo">${astro.svg()}</g>`)
+  }
+  // a big planet's night side along the bottom, its cities lit
+  {
+    const h = isTall ? 40 : 28
+    const R = W * 1.6
+    const cx = W / 2
+    const cy = H - h + R
+    for (let x = 0; x < W; x++) {
+      const y = Math.round(cy - Math.sqrt(R * R - (x + 0.5 - cx) ** 2))
+      ground.px(fill('#0b1a3a'), x, y, 1, H - y)
+      groundGlow.px(fill('#4ad8ff', 0.85), x, y, 1, 0.6)
+      if (rand() < 0.12) ground.px(fill('#123a5a'), x, y + 3 + Math.floor(rand() * 8), 3 + Math.floor(rand() * 6), 1.5)
+      if (rand() < 0.08) ground.px(`${fill('#ffd27a', op1(0.5 + rand() * 0.4))}${rand() < 0.3 ? ' class="tw2"' : ''}`, x, y + 4 + Math.floor(rand() * (h - 6)), 0.5, 0.5)
+    }
+    bg.raw(`<ellipse cx="${num(cx)}" cy="${H - h}" rx="${W * 0.7}" ry="12" fill="url(#atmo)"/>`)
+  }
+  panel(hud, hudGlow, isTall ? W - 66 : 8, 8, 58, 'MISSION LOG', [
+    [['ORBIT ', '#8a9ab8'], ['412 KM', '#9ff0ff']],
+    [['O2 ', '#8a9ab8'], ['98%', '#5dffb0']],
+    [['SIGNAL ', '#8a9ab8'], ['OK', '#5dffb0']],
+    [['REC', '#ff4a5a', 'blink']],
+  ], '#9ff0ff')
+  const extra =
+    radial('nebA', '#8a2cff', 0.28) + radial('nebB', '#00c8d8', 0.2) + radial('nebC', '#ff3fa8', 0.16) + radial('atmo', '#4ad8ff', 0.35) + STREAK
+  return { W, H, defs: extra, body: svgOf(bg, ringBack, planet, ringFront, art, glow, ground, groundGlow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Black Hole: a glowing disk over an ocean world, a ring station turning
+function blackHole(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 7070 : 7071)
+  const HY = Math.round(H * (isTall ? 0.84 : 0.8))
+  const bg = new Layer()
+  const art = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const sea = new Layer()
+  const wave = new Layer()
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#010103'), 0, 0, W, H)
+  band(bg, W, HY - 40, HY, [[0, '#010103'], [1, '#2a1a10']])
+  dots(bg, rand, [0, 0, W, HY], isTall ? 120 : 170, ['#ffffff', '#ffe6c0', '#c0d0ff'], [0.2, 0.8], 0.25)
+  const bx = W / 2
+  const by = Math.round(H * (isTall ? 0.2 : 0.3))
+  const r = isTall ? 11 : 13
+  art.raw(
+    `<g shape-rendering="geometricPrecision">` +
+      `<circle cx="${bx}" cy="${by}" r="${r * 5}" fill="url(#bhGlow)" class="pu"/>` +
+      `<circle cx="${bx}" cy="${by}" r="${num(r * 1.34)}" fill="none" stroke="#ffb060" stroke-width="${num(r * 0.42)}" opacity="0.9"/>` +
+      `<circle cx="${bx}" cy="${by}" r="${num(r * 1.3)}" fill="none" stroke="#fff0d0" stroke-width="${num(r * 0.12)}" opacity="0.8"/>` +
+      `<circle cx="${bx}" cy="${by}" r="${r}" fill="#000"/>` +
+      `<circle cx="${bx}" cy="${by}" r="${num(r * 1.05)}" fill="none" stroke="#fff6e0" stroke-width="0.4" opacity="0.85"/>` +
+      `<ellipse cx="${bx}" cy="${by}" rx="${num(r * 3.7)}" ry="${num(r * 0.36)}" fill="url(#disk)"/>` +
+      `<ellipse cx="${bx}" cy="${by}" rx="${num(r * 3)}" ry="${num(r * 0.1)}" fill="#fff8e8" opacity="0.75"/>` +
+      `</g>`,
+  )
+  // dust caught in the disk
+  for (let k = 0; k < 26; k++) {
+    const a = rand() * Math.PI * 2
+    const d = r * (1.6 + rand() * 2.2)
+    glow.px(`${fill(rand() < 0.5 ? '#ffd27a' : '#fff0d0', op1(0.4 + rand() * 0.5))} class="tw${1 + (k % 3)}"`, bx + Math.cos(a) * d, by + Math.sin(a) * d * 0.18, 0.6, 0.5)
+  }
+  // the ring station, turning
+  {
+    const sx = Math.round(W * (isTall ? 0.8 : 0.15))
+    const sy = Math.round(H * (isTall ? 0.38 : 0.22))
+    const sr = isTall ? 9 : 11
+    const ring = new Layer()
+    ring.raw(`<circle cx="${sx}" cy="${sy}" r="${sr}" fill="none" stroke="#7a8090" stroke-width="0.7"/>`)
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2
+      ring.px(fill('#c8ccd6'), sx + Math.cos(a) * sr - 1.2, sy + Math.sin(a) * sr - 1.2, 2.4, 2.4)
+      ring.px(fill('#3a4050'), sx + Math.cos(a) * sr - 0.4, sy + Math.sin(a) * sr - 0.4, 0.8, 0.8)
+    }
+    ring.raw(`<line x1="${sx - sr}" y1="${sy}" x2="${sx + sr}" y2="${sy}" stroke="#7a8090" stroke-width="0.4"/>`)
+    art.raw(`<g class="rs" ${rot(sx, sy)}>${ring.svg()}</g>`)
+    art.px(fill('#c8ccd6'), sx - 1.5, sy - 1.5, 3, 3)
+  }
+  // a long ship crossing
+  moving(art, 'fy', (a, g) => {
+    const x = isTall ? 110 : 230
+    const y = Math.round(H * (isTall ? 0.5 : 0.48))
+    a.px(fill('#b8bcc8'), x, y, 16, 1.6)
+    a.px(fill('#8a90a0'), x + 2, y - 1, 6, 1)
+    a.px(fill('#8a90a0'), x + 11, y + 1.6, 4, 1)
+    g.px(fill('#7fd0ff'), x + 16, y + 0.2, 1.2, 1.2)
+  })
+  // the ocean, its sheen, and a wave as tall as a mountain
+  band(sea, W, HY, H, [[0, '#0e4a5e'], [1, '#05202c']])
+  for (let i = 0; i < (isTall ? 40 : 60); i++) {
+    const y = HY + 1 + Math.floor(rand() * (H - HY - 2))
+    sea.px(`${fill('#5ab8d0', op1(0.15 + rand() * 0.25))}${rand() < 0.3 ? ` class="tw${1 + (i % 3)}"` : ''}`, Math.floor(rand() * W), y, 2 + Math.floor(rand() * 6), 0.4)
+  }
+  for (let k = 0; k < 5; k++) sea.px(fill('#ffd27a', op1(0.5 - k * 0.08)), bx - 8 + k, HY + 1 + k * 1.8, 16 - k * 2, 0.5)
+  {
+    const xc = isTall ? 30 : 46
+    const peak = isTall ? 54 : 52
+    const sig = isTall ? 26 : 34
+    for (let x = 0; x < xc + sig * 2.2; x++) {
+      const t = (x - xc) / sig
+      const hgt = peak * Math.exp(-t * t * (t > 0 ? 1.4 : 0.8))
+      if (hgt < 1) continue
+      const y = Math.round(HY - hgt)
+      wave.px(fill('#12506a'), x, y, 1, HY - y + 1)
+      wave.px(fill('#2a7a94'), x, y, 1, Math.min(6, HY - y))
+      wave.px(fill('#d8f4ff', 0.85), x, y, 1, 0.8)
+    }
+    for (let k = 0; k < 18; k++) wave.px(`${fill('#e8fbff', op1(0.4 + rand() * 0.4))} class="tw${1 + (k % 3)}"`, xc - 6 + rand() * 24, HY - peak - 1 - rand() * 6, 0.6, 0.6)
+  }
+  panel(hud, hudGlow, isTall ? 8 : W - 66, 8, 58, 'NAV', [
+    [['T+ ', '#8a9ab8'], ['01:42:07', '#ffb347']],
+    [['DILATION ', '#8a9ab8'], ['HIGH', '#ff6a5a', 'blink']],
+    [['FUEL ', '#8a9ab8'], ['64%', '#9ff0ff']],
+    [['DOCKING ', '#8a9ab8'], ['READY', '#5dffb0']],
+  ], '#ffb347')
+  const extra =
+    `<radialGradient id="bhGlow"><stop offset="0" stop-color="#ff9a40" stop-opacity="0.4"/><stop offset="0.4" stop-color="#ff6a1a" stop-opacity="0.14"/><stop offset="1" stop-color="#ff6a1a" stop-opacity="0"/></radialGradient>` +
+    `<linearGradient id="disk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff6a1a" stop-opacity="0"/><stop offset="0.18" stop-color="#ff8a2a" stop-opacity="0.8"/><stop offset="0.38" stop-color="#ffe0a0"/><stop offset="0.5" stop-color="#ffffff"/>` +
+    `<stop offset="0.66" stop-color="#ffc070"/><stop offset="0.84" stop-color="#ff7a1a" stop-opacity="0.7"/><stop offset="1" stop-color="#ff6a1a" stop-opacity="0"/></linearGradient>`
+  return { W, H, defs: extra, body: svgOf(bg, art, glow, sea, wave) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Gargoyle City: a gothic city in the rain, a searchlight on the clouds
+const CAPED = ['.....###....', '....#####...', '....##e##...', '...######...', '..########..', '.##########.', '############', '############', '.###########', '..#########.', '...##..###..']
+const GARGOYLE = ['#.......#', '##.###.##', '.#######.', '..#e#e#..', '...###...', '.#######.', '#########', '##.###.##']
+
+function gothicTower(L, G, rand, x, w, top, HY, spire) {
+  L.px(fill('#0a0e18'), x, top, w, HY - top)
+  L.px(fill('#161c2c'), x, top, 1, HY - top)
+  L.px(fill('#0a0e18'), x + 2, top - 4, w - 4, 4)
+  if (spire) {
+    for (let r = 0; r < 12; r++) {
+      const half = 0.5 + (r / 12) * 2
+      L.px(fill('#0a0e18'), x + w / 2 - half, top - 16 + r, half * 2, 1)
+    }
+  }
+  L.px(fill('#1a2030'), x - 1, top, 2, 2)
+  L.px(fill('#1a2030'), x + w - 1, top, 2, 2)
+  for (let y = top + 4; y < HY - 3; y += 4) {
+    for (let wx = x + 2; wx < x + w - 2; wx += 3) {
+      if (rand() < 0.22) G.px(fill(rand() < 0.8 ? '#e8b84a' : '#ffe6a0', op1(0.45 + rand() * 0.4)), wx, y, 1, 1.5)
+    }
+  }
+}
+
+function gothic(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 9191 : 9192)
+  const HY = Math.round(H * (isTall ? 0.9 : 0.88))
+  const bg = new Layer()
+  const clouds = new Layer()
+  const far = new Layer()
+  const near = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer()
+  const wet = new Layer()
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#04060c'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#05070e'], [0.45, '#0c1424'], [0.8, '#1c2840'], [1, '#33384a']])
+  disc(bg, W * (isTall ? 0.2 : 0.36), H * (isTall ? 0.2 : 0.14), 9, fill('#d8dce8', 0.85))
+  // the searchlight, swaying, its circle on the clouds
+  const lx = Math.round(W * (isTall ? 0.78 : 0.84))
+  const ly = Math.round(H * (isTall ? 0.5 : 0.44))
+  const tx = Math.round(W * (isTall ? 0.5 : 0.62))
+  const ty = Math.round(H * (isTall ? 0.07 : 0.1))
+  bg.raw(
+    `<g class="sl" ${rot(lx, ly)}><polygon points="${lx - 1},${ly} ${lx + 1},${ly} ${tx + 12},${ty} ${tx - 12},${ty}" fill="url(#search)"/>` +
+      `<ellipse cx="${tx}" cy="${ty}" rx="13" ry="5.5" fill="#fff3c0" opacity="0.42"/><ellipse cx="${tx}" cy="${ty}" rx="9" ry="3.6" fill="#fff8e0" opacity="0.35"/></g>`,
+  )
+  // cloud banks drifting
+  moving(clouds, 'dt', a => {
+    for (let k = 0; k < (isTall ? 10 : 14); k++) {
+      const cx = Math.floor(rand() * (W + 60)) - 40
+      const cy = Math.floor(rand() * H * 0.3)
+      const cw = 20 + Math.floor(rand() * 40)
+      a.px(fill('#1a2236', 0.85), cx, cy, cw, 3)
+      a.px(fill('#2a3450', 0.7), cx + 3, cy - 1, cw - 8, 1)
+      a.px(fill('#141a2a', 0.85), cx + 5, cy + 3, cw - 6, 2)
+    }
+  })
+  clouds.raw(`<rect width="${W}" height="${HY}" fill="#e8f0ff" opacity="0" class="lt"/>`)
+  // far towers and spires
+  for (let x = 0; x < W;) {
+    const w = 5 + Math.floor(rand() * 9)
+    const top = Math.round(HY - H * (isTall ? 0.18 : 0.3) - rand() * H * 0.18)
+    far.px(fill('#0e1424'), x, top, w, HY - top)
+    if (rand() < 0.45) for (let r = 0; r < 8; r++) far.px(fill('#0e1424'), x + w / 2 - (8 - r) / 8 * 1.5, top - 8 + r, ((8 - r) / 8) * 3 + 0.5, 1)
+    for (let i = 0; i < Math.floor((w * (HY - top)) / 40); i++) far.px(fill('#c8a04a', op1(0.25 + rand() * 0.3)), x + 1 + Math.floor(rand() * (w - 2)), top + 2 + Math.floor(rand() * (HY - top - 4)), 0.5, 1)
+    x += w + (rand() < 0.3 ? 1 : 0)
+  }
+  // near towers at the edges, one with a clock
+  const towers = isTall
+    ? [[0, 22, 0.3, true], [24, 14, 0.46, false], [W - 38, 16, 0.42, true], [W - 20, 20, 0.24, false]]
+    : [[0, 26, 0.12, true], [28, 16, 0.34, false], [46, 12, 0.5, true], [W - 60, 14, 0.42, false], [W - 44, 20, 0.2, true], [W - 22, 22, 0.32, false]]
+  for (const [x, w, t, spire] of towers) gothicTower(near, glow, rand, x, w, Math.round(H * t), HY, spire)
+  {
+    const [x, w, t] = towers[0]
+    const cx = x + w / 2
+    const cy = Math.round(H * t) + 26
+    disc(glow, cx, cy, 6, fill('#f0d890', 0.9))
+    near.px(fill('#3a2a10'), cx - 0.3, cy - 5, 0.6, 5)
+    near.px(fill('#3a2a10'), cx, cy - 0.3, 3.5, 0.6)
+  }
+  // a gargoyle and a caped figure keeping watch on a ledge
+  {
+    const s = isTall ? 1.2 : 1.4
+    const ex = isTall ? 4 : 10
+    const ey = Math.round(H * (isTall ? 0.62 : 0.6))
+    front.px(fill('#1a2030'), ex - 4, ey, 50 * s, 3)
+    front.px(fill('#2a3244'), ex - 4, ey, 50 * s, 0.6)
+    front.px(fill('#141a28'), ex, ey + 3, 6, H - ey - 3)
+    sprite(front, GARGOYLE, ex + 2, ey - 8 * s, s, { '#': fill('#2a3244'), e: fill('#ff5a3a') })
+    sprite(front, CAPED, ex + 18 * s, ey - 11 * s, s, { '#': fill('#020308'), e: fill('#cfe0ff') }, { outline: fill('#3a4a6e', 0.7) })
+  }
+  // the street: lamps and a wet shine
+  front.px(fill('#070910'), 0, HY, W, H - HY)
+  for (let x = 14; x < W; x += isTall ? 44 : 52) {
+    front.px(fill('#1a2030'), x, HY - 10, 0.8, 10)
+    glow.px(fill('#ffcc66', 0.95), x - 0.6, HY - 11.5, 2, 1.5)
+    wet.px(fill('#ffcc66', 0.25), x - 2, HY + 2, 5, 0.5)
+  }
+  rainfall(wet, rand, W, H, isTall ? 130 : 170)
+  moving(clouds, 'fy', (a, g) => {
+    const x = isTall ? 120 : 200
+    const y = Math.round(H * (isTall ? 0.2 : 0.3))
+    a.px(fill('#2a3048'), x, y, 18, 5)
+    a.px(fill('#2a3048'), x + 2, y - 1, 14, 1)
+    a.px(fill('#1a2030'), x + 7, y + 5, 5, 1.5)
+    g.px(`${fill('#ff4a4a')} class="blink"`, x + 17.5, y + 2, 0.8, 0.8)
+  })
+  panel(hud, hudGlow, isTall ? W - 66 : 8, 8, 58, 'NIGHT PATROL', [
+    [['DISTRICT ', '#8a9ab8'], ['7', '#ffcc66']],
+    [['RAIN ', '#8a9ab8'], ['HEAVY', '#8fb8ff']],
+    [['STATUS ', '#8a9ab8'], ['ALL QUIET', '#5dffb0']],
+  ], '#ffcc66')
+  const extra = `<linearGradient id="search" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff3c0" stop-opacity="0.35"/><stop offset="1" stop-color="#fff3c0" stop-opacity="0.06"/></linearGradient>`
+  return { W, H, defs: extra, body: svgOf(bg, clouds, far, near, glow, front, wet) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Grand Prix: a night race under floodlights
+const RACER = ['##...........o........', '##.........#####......', '##wwwwwwwwwwwwwwwwwwww#', '###@@@############@@@###', '...@@@............@@@...']
+
+function race(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 4141 : 4142)
+  const HY = Math.round(H * (isTall ? 0.74 : 0.64))
+  const bg = new Layer()
+  const city = new Layer()
+  const cityGlow = new Layer('filter="url(#glow)"')
+  const stand = new Layer()
+  const track = new Layer()
+  const trackGlow = new Layer('filter="url(#glow)"')
+  const cars = new Layer()
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#03040c'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#03040c'], [0.55, '#0b1430'], [1, '#22306a']])
+  dots(bg, rand, [0, 0, W, HY * 0.4], isTall ? 30 : 50, ['#ffffff', '#cfe0ff'], [0.2, 0.5], 0.2)
+  // the city behind, with a big wheel turning
+  for (let x = 0; x < W;) {
+    const w = 4 + Math.floor(rand() * 9)
+    const top = Math.round(HY - 26 - rand() * H * (isTall ? 0.14 : 0.2))
+    city.px(fill('#0c1328'), x, top, w, HY - top)
+    for (let i = 0; i < Math.floor((w * (HY - top)) / 24); i++) {
+      city.px(fill(['#ffd27a', '#9ff0ff', '#ff6ab0'][Math.floor(rand() * 3)], op1(0.3 + rand() * 0.4)), x + 1 + Math.floor(rand() * (w - 2)), top + 2 + Math.floor(rand() * (HY - top - 4)), 0.5, 0.5)
+    }
+    x += w + 1
+  }
+  {
+    const cx = Math.round(W * (isTall ? 0.76 : 0.82))
+    const R = isTall ? 18 : 22
+    const cy = HY - 26 - R
+    city.px(fill('#2a3460'), cx - R * 0.5, cy, 0.8, HY - cy)
+    city.px(fill('#2a3460'), cx + R * 0.5, cy, 0.8, HY - cy)
+    const wheel = new Layer()
+    wheel.raw(`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#5a6ab0" stroke-width="0.6"/>`)
+    for (let k = 0; k < 14; k++) {
+      const a = (k / 14) * Math.PI * 2
+      wheel.raw(`<line x1="${cx}" y1="${cy}" x2="${num(cx + Math.cos(a) * R)}" y2="${num(cy + Math.sin(a) * R)}" stroke="#3a4880" stroke-width="0.35"/>`)
+      wheel.px(fill(['#ff6ab0', '#9ff0ff', '#ffd27a'][k % 3], 0.9), cx + Math.cos(a) * R - 1, cy + Math.sin(a) * R - 1, 2, 2)
+    }
+    cityGlow.raw(`<g class="rs" ${rot(cx, cy)}>${wheel.svg()}</g>`)
+  }
+  // floodlights
+  for (const fx of isTall ? [0.1, 0.9] : [0.06, 0.38, 0.62, 0.94]) {
+    const x = Math.round(W * fx)
+    const top = HY - (isTall ? 64 : 58)
+    stand.px(fill('#2a3050'), x, top, 1, HY - top)
+    stand.px(fill('#2a3050'), x - 3, top, 7, 2)
+    cityGlow.px(fill('#fff6d8'), x - 2.5, top + 0.4, 6, 1.2)
+    bg.raw(`<polygon points="${x - 3},${top + 2} ${x + 4},${top + 2} ${x + 22},${H} ${x - 21},${H}" fill="url(#flood)"/>`)
+  }
+  // the grandstand and its crowd
+  const st = HY - 22
+  stand.px(fill('#1e2640'), 0, st - 4, W, 2)
+  trackGlow.px(fill('#9ff0ff', 0.7), 0, st - 2.2, W, 0.4)
+  for (let r = 0; r < 6; r++) {
+    const y = st + r * 3.4
+    stand.px(fill(r % 2 ? '#141a30' : '#18203a'), 0, y, W, 3.4)
+    for (let x = 1; x < W; x += 1.5) {
+      if (rand() < 0.62) stand.px(`${fill(['#ff6a5a', '#ffd27a', '#9ff0ff', '#ffffff', '#c86bff', '#5dffb0'][Math.floor(rand() * 6)], op1(0.45 + rand() * 0.35))}${rand() < 0.12 ? ` class="tw${1 + Math.floor(rand() * 3)}"` : ''}`, x, y + 0.8, 0.8, 1.2)
+    }
+  }
+  // the barrier with banners, the kerbs, the asphalt and the start line
+  track.px(fill('#c8ccd8'), 0, HY, W, 5)
+  for (let x = 0; x < W; x += 44) {
+    track.px(fill('#16204a'), x + 4, HY + 0.6, 34, 3.8)
+    text(track, (x / 44) % 2 ? 'NIGHT RACE' : 'GRAND PRIX', x + 5.5, HY + 1.4, 0.55, fill('#ffffff', 0.92))
+  }
+  const ty = HY + 5
+  track.px(fill('#16181e'), 0, ty, W, H - ty)
+  for (let x = 0; x < W; x += 4) {
+    track.px(fill(x % 8 ? '#ffffff' : '#e0242b'), x, ty, 4, 1.5)
+    track.px(fill(x % 8 ? '#e0242b' : '#ffffff'), x, H - 5, 4, 1.5)
+  }
+  track.px(fill('#20232a'), 0, ty + 8, W, 3)
+  track.px(fill('#0e1014'), 0, H - 3.5, W, 3.5)
+  const sx = Math.round(W * (isTall ? 0.2 : 0.22))
+  for (let y = ty + 1.5; y < H - 5; y += 1.5) for (let k = 0; k < 2; k++) track.px(fill(((y - ty) / 1.5 + k) % 2 < 1 ? '#ffffff' : '#000000', 0.9), sx + k * 1.5, y, 1.5, 1.5)
+  // the start lights on a gantry over the line
+  {
+    const gy = HY - (isTall ? 10 : 9)
+    stand.px(fill('#2a3050'), sx - 10, gy - 3, 0.8, HY - gy + 3)
+    stand.px(fill('#2a3050'), sx + 12, gy - 3, 0.8, HY - gy + 3)
+    stand.px(fill('#10141f'), sx - 10, gy - 3, 23, 4.5)
+    for (let i = 0; i < 5; i++) trackGlow.px(`${fill('#ff2020')} class="g${i}"`, sx - 8 + i * 4.3, gy - 2, 2.2, 2.2)
+  }
+  // a checkered flag waving at the front
+  {
+    const fx = isTall ? W - 26 : W - 40
+    const fy = ty + 2
+    track.px(fill('#8a8a90'), fx, fy - 24, 0.8, 24)
+    const flag = new Layer()
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++) flag.px(fill((r + c) % 2 ? '#111111' : '#f4f4f4'), fx + 0.8 + c * 1.6, fy - 24 + r * 1.6, 1.6, 1.6)
+    track.raw(`<g class="wv" ${rot(fx + 0.8, fy - 24)}>${flag.svg()}</g>`)
+  }
+  // the cars, fast
+  const lanes = [[ty + 3, 'd5', '#e0242b'], [ty + 9, 'd6', '#7a3cff'], [ty + 15, 'd7', '#8ee000']]
+  for (const [y, cls, color] of lanes) {
+    if (y + 5 > H - 5) continue
+    moving(cars, cls, a => {
+      const x = isTall ? 60 : 120
+      const s = 0.7
+      a.raw(`<rect x="${x - 30}" y="${num(y + 2 * s)}" width="30" height="${num(1.4 * s)}" fill="url(#trailR)" opacity="0.6"/>`)
+      sprite(a, RACER, x, y, s, { '#': fill(color), w: fill('#f4f4f4'), o: fill('#ffd23f'), '@': fill('#0a0a0c') })
+    })
+  }
+  panel(hud, hudGlow, 8, 8, 62, 'LAP 42/57', [
+    [['P1 ', '#ffffff'], ['RED ', '#ff5a5a'], ['LEADER', '#8a9ab8']],
+    [['P2 ', '#ffffff'], ['LIME ', '#8ee000'], ['+0.8', '#ffd27a']],
+    [['P3 ', '#ffffff'], ['VIOLET ', '#a87aff'], ['+1.2', '#ffd27a']],
+    [['FASTEST ', '#8a9ab8'], ['1:31.4', '#c86bff', 'blink']],
+  ], '#e0242b')
+  const extra = `<linearGradient id="flood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d8" stop-opacity="0.18"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></linearGradient>`
+  return { W, H, defs: extra, body: svgOf(bg, city, cityGlow, stand, track, trackGlow, cars) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- AI Lab: server racks, a neural network lighting up, a model training
+const ROBOT = ['..#..', '.###.', '#e#e#', '#####', '.###.', '#####', '#.#.#', '@...@']
+
+function rack(L, G, rand, x, top, w, HY) {
+  L.px(fill('#0b1322'), x, top, w, HY - top)
+  L.px(fill('#1c2a44'), x, top, w, 0.6)
+  L.px(fill('#1c2a44'), x, top, 0.6, HY - top)
+  L.px(fill('#1c2a44'), x + w - 0.6, top, 0.6, HY - top)
+  for (let y = top + 2; y < HY - 3; y += 4) {
+    L.px(fill('#101c30'), x + 1.5, y, w - 3, 3)
+    for (let k = x + 3; k < x + w - 8; k += 1.5) L.px(fill('#0a1220'), k, y + 1, 0.6, 1.5)
+    for (let k = 0; k < 3; k++) {
+      const c = ['#3dff8a', '#38e8ff', '#ffb347', '#3dff8a'][Math.floor(rand() * 4)]
+      const cls = rand() < 0.5 ? ` class="${['tw1', 'tw2', 'tw3', 'blink', 'cur'][Math.floor(rand() * 5)]}"` : ''
+      G.px(`${fill(c, 0.95)}${cls}`, x + w - 6.5 + k * 1.6, y + 1, 0.8, 0.8)
+    }
+  }
+}
+
+function ai(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 2020 : 2021)
+  const HY = Math.round(H * (isTall ? 0.84 : 0.8))
+  const bg = new Layer()
+  const net = new Layer()
+  const netGlow = new Layer('filter="url(#glow)"')
+  const art = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer()
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#02050e'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#02050e'], [0.6, '#071a2e'], [1, '#0c2a40']])
+  // binary drifting in the dark
+  for (let i = 0; i < (isTall ? 40 : 60); i++) {
+    const x = Math.floor(rand() * W)
+    const y = Math.floor(rand() * HY * 0.9)
+    text(bg, rand() < 0.5 ? '0' : '1', x, y, 0.5, `${fill(rand() < 0.7 ? '#38e8ff' : '#3dff8a', op1(0.12 + rand() * 0.2))}${rand() < 0.4 ? ` class="tw${1 + (i % 3)}"` : ''}`)
+  }
+  // the neural network, top centre
+  {
+    const sizes = [3, 5, 5, 2]
+    const x0 = W * (isTall ? 0.18 : 0.34)
+    const x1 = W * (isTall ? 0.82 : 0.66)
+    const y0 = H * (isTall ? 0.2 : 0.1)
+    const y1 = H * (isTall ? 0.36 : 0.4)
+    const nodes = sizes.map((n, l) => Array.from({ length: n }, (_, i) => [x0 + ((x1 - x0) * l) / (sizes.length - 1), y0 + ((y1 - y0) * (i + 0.5)) / n]))
+    let d = ''
+    const hot = []
+    for (let l = 0; l < nodes.length - 1; l++) {
+      for (const [ax, ay] of nodes[l]) {
+        for (const [bx, by] of nodes[l + 1]) {
+          d += `M${num(ax)} ${num(ay)}L${num(bx)} ${num(by)}`
+          if (rand() < 0.22) hot.push([ax + (bx - ax) * 0.5, ay + (by - ay) * 0.5])
+        }
+      }
+    }
+    net.raw(`<path d="${d}" stroke="#38e8ff" stroke-width="0.3" opacity="0.22" fill="none" shape-rendering="geometricPrecision"/>`)
+    hot.forEach(([x, y], k) => netGlow.px(`${fill(k % 3 ? '#38e8ff' : '#c86bff', 0.9)} class="tw${1 + (k % 3)}"`, x - 0.4, y - 0.4, 0.8, 0.8))
+    nodes.flat().forEach(([x, y], k) => {
+      disc(net, x, y, 2, fill('#0e2a40'))
+      netGlow.px(`${fill(k % 4 ? '#38e8ff' : '#3dff8a')}${k % 3 === 0 ? ' class="pu"' : ''}`, x - 1, y - 1, 2, 2)
+    })
+  }
+  // racks on both sides
+  const racks = isTall ? [[0, 22, 0.44], [W - 22, 22, 0.44]] : [[0, 20, 0.3], [21, 18, 0.4], [W - 39, 18, 0.4], [W - 20, 20, 0.3]]
+  for (const [x, w, t] of racks) rack(art, glow, rand, x, Math.round(H * t), w, HY)
+  // the floor
+  front.px(fill('#040a14'), 0, HY, W, H - HY)
+  glow.px(fill('#38e8ff', 0.7), 0, HY, W, 0.4)
+  for (const [y, o] of [[HY + 3, 0.25], [HY + 7, 0.2], [HY + 13, 0.15], [HY + 21, 0.12]]) if (y < H) front.px(fill('#38e8ff', o), 0, y, W, 0.3)
+  {
+    let d = ''
+    for (let xb = -W; xb <= W * 2; xb += W / 10) d += `M${num(W / 2 + (xb - W / 2) * 0.2)} ${HY}L${num(xb)} ${H}`
+    front.raw(`<path d="${d}" stroke="#38e8ff" stroke-width="0.3" opacity="0.18" fill="none"/>`)
+  }
+  // a GPU, its fan spinning
+  {
+    const gx = isTall ? W - 48 : W - 74
+    const gy = HY - 3
+    front.px(fill('#161e32'), gx, gy - 14, 26, 14)
+    front.px(fill('#2a3654'), gx, gy - 14, 26, 0.6)
+    for (let k = gx + 2; k < gx + 24; k += 2) front.px(fill('#d8a840'), k, gy, 1, 1.5)
+    const fan = new Layer()
+    const fx = gx + 7
+    const fy = gy - 7
+    disc(fan, fx, fy, 5, fill('#0a0f1c'))
+    for (let k = 0; k < 4; k++) fan.raw(`<rect x="${fx - 0.5}" y="${fy - 4.5}" width="1" height="4.5" fill="#3a4a6a" transform="rotate(${k * 90} ${fx} ${fy})"/>`)
+    front.raw(`<g class="sw" ${rot(fx, fy)}>${fan.svg()}</g>`)
+    text(glow, 'GPU', gx + 15, gy - 9, 0.6, fill('#3dff8a'))
+    glow.px(`${fill('#3dff8a')} class="blink"`, gx + 15, gy - 4, 1, 1)
+  }
+  // a little robot rolling by
+  moving(front, 'cw', (a, g) => {
+    const x = isTall ? 60 : 120
+    const y = HY - 9
+    sprite(a, ROBOT, x, y, 1.1, { '#': fill('#c8d0e0'), e: fill('#0a1220'), '@': fill('#3a4a6a') })
+    g.px(fill('#38e8ff'), x + 1.1, y + 2.2, 1.1, 1.1)
+    g.px(fill('#38e8ff'), x + 3.3, y + 2.2, 1.1, 1.1)
+    g.px(`${fill('#ff4a5a')} class="blink"`, x + 2.2, y - 1, 1.1, 1)
+  })
+  // the training run and its loss curve
+  panel(hud, hudGlow, isTall ? 6 : 8, 8, 60, 'TRAIN.PY', [
+    [['$ ', '#3dff8a'], ['PYTHON TRAIN.PY', '#e8f6ff']],
+    [['EPOCH ', '#6a8ab0'], ['42/100', '#38e8ff']],
+    [['LOSS ', '#6a8ab0'], ['0.013', '#ffb347']],
+    [['ACC ', '#6a8ab0'], ['98.7%', '#3dff8a']],
+    [['$ ', '#3dff8a'], ['_', '#e8f6ff', 'cur']],
+  ], '#38e8ff')
+  {
+    const cw = isTall ? 56 : 60
+    const ch = 28
+    const cx = W - cw - 8
+    const cy = isTall ? 8 : 8
+    hud.px(fill('#000', 0.6), cx, cy, cw, ch)
+    for (const [px, py, pw, ph] of [[cx, cy, cw, 0.5], [cx, cy + ch - 0.5, cw, 0.5], [cx, cy, 0.5, ch], [cx + cw - 0.5, cy, 0.5, ch]]) hudGlow.px(fill('#c86bff', 0.85), px, py, pw, ph)
+    text(hud, 'LOSS', cx + 2, cy + 1.7, 0.5, fill('#c86bff'))
+    hud.px(fill('#6a8ab0', 0.6), cx + 4, cy + 7, 0.4, ch - 11)
+    hud.px(fill('#6a8ab0', 0.6), cx + 4, cy + ch - 4, cw - 8, 0.4)
+    for (let x = 0; x < cw - 10; x += 0.5) {
+      const v = Math.exp(-x / 9) + (rand() - 0.5) * 0.06
+      hudGlow.px(fill('#38e8ff'), cx + 5 + x, cy + 7 + (ch - 12) * (1 - Math.max(0, Math.min(1, v))), 0.5, 0.5)
+    }
+    hudGlow.px(`${fill('#ffffff')} class="cur"`, cx + cw - 5.5, cy + ch - 6, 1, 1)
+  }
+  return { W, H, body: svgOf(bg, net, netGlow, art, glow, front) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Rooftop Cats: cats on the roofs under a big moon
+const CAT_SIT = ['.#.....#.', '.##...##.', '.#######.', '.#e###e#.', '.###n###.', '..#####..', '..#####..', '.#######.', '.#######.', '.##.#.##.']
+const TABBY = ['.#.....#.', '.##...##.', '.##s#s##.', '.#e###e#.', '.###n###.', '..#www#..', '..#www#..', '.s#www#s.', '.#######.', '.##.#.##.']
+const CAT_SLEEP = ['.#.#........', '.####.####..', '#-#-########', '############', '.##########.', '..########..']
+const CAT_WALK = ['#............', '.#.........#.#', '.#.........####', '.###########e#n', '..##########..', '..##########..', '..#.#....#.#..']
+const TAIL = [[0, 0], [1, -1], [2, -2], [2, -3], [2, -4], [1, -5]]
+
+function roof(L, x, w, base, peak, color, tile) {
+  for (let r = 0; r < peak; r++) {
+    const inset = ((peak - r) / peak) * (w / 2)
+    L.px(fill(r % 3 === 0 ? tile : color), x + inset, base - peak + r, w - inset * 2, 1)
+  }
+}
+
+function cats(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 5555 : 5556)
+  const bg = new Layer()
+  const far = new Layer()
+  const farGlow = new Layer('filter="url(#glow)"')
+  const houses = new Layer()
+  const lit = new Layer('filter="url(#glow)"')
+  const pets = new Layer()
+  const petGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#07061a'), 0, 0, W, H)
+  band(bg, W, 0, H, [[0, '#07061a'], [0.55, '#171640'], [0.85, '#3a2c68'], [1, '#4a3474']])
+  const mx = Math.round(W * (isTall ? 0.72 : 0.8))
+  const my = Math.round(H * (isTall ? 0.12 : 0.2))
+  const mr = isTall ? 14 : 16
+  dots(bg, rand, [0, 0, W, H * 0.55], isTall ? 80 : 120, ['#ffffff', '#fff4c8', '#cfc8ff'], [0.25, 0.75], 0.35, [[mx - mr - 4, my - mr - 4, mr * 2 + 8, mr * 2 + 8]])
+  bg.raw(`<circle cx="${mx}" cy="${my}" r="${mr * 3}" fill="url(#moonWarm)"/>`)
+  disc(far, mx, my, mr, fill('#fff2c4'))
+  for (const [dx, dy, r] of [[-5, -3, 3], [4, 4, 2.5], [5, -6, 1.5], [-3, 7, 2]]) disc(far, mx + dx, my + dy, r, fill('#f0dca0'))
+  // the town behind
+  const HY = Math.round(H * (isTall ? 0.66 : 0.6))
+  for (let x = 0; x < W;) {
+    const w = 8 + Math.floor(rand() * 12)
+    const top = HY - 6 - Math.floor(rand() * (isTall ? 26 : 22))
+    far.px(fill('#141236'), x, top, w, H - top)
+    if (rand() < 0.5) roof(far, x - 1, w + 2, top, 4, '#141236', '#1a1840')
+    for (let i = 0; i < Math.floor(w / 4); i++) if (rand() < 0.6) farGlow.px(fill('#ffd27a', op1(0.35 + rand() * 0.4)), x + 2 + Math.floor(rand() * (w - 4)), top + 3 + Math.floor(rand() * 10), 1.5, 1.5)
+    x += w + 1
+  }
+  // two houses in front, roofs meeting the sky
+  const s = isTall ? 1.4 : 1.8
+  const houseL = isTall ? [-6, 74, Math.round(H * 0.8), 22] : [-8, 112, Math.round(H * 0.78), 26]
+  const houseR = isTall ? [W - 72, 80, Math.round(H * 0.84), 22] : [W - 112, 120, Math.round(H * 0.8), 28]
+  for (const [x, w, base, peak] of [houseL, houseR]) {
+    houses.px(fill('#1e1836'), x + 4, base, w - 8, H - base)
+    roof(houses, x, w, base, peak, '#2a1e3a', '#3a2a4e')
+    houses.px(fill('#3a2a4e'), x + w / 2 - 1, base - peak - 1, 2, 1)
+    for (let k = 0; k < 2; k++) {
+      const wx = x + 14 + k * (w - 40)
+      lit.px(fill('#ffcf6a', 0.85), wx, base + 5, 10, 8)
+      houses.px(fill('#1e1836'), wx + 4.6, base + 5, 0.8, 8)
+      houses.px(fill('#1e1836'), wx, base + 8.6, 10, 0.8)
+    }
+  }
+  // chimney on the right house, for the tabby
+  const chx = houseR[0] + houseR[1] * 0.68
+  const chTop = houseR[2] - houseR[3] * 0.7 - 10
+  houses.px(fill('#4a2a2e'), chx, chTop, 9, 16)
+  houses.px(fill('#5a3238'), chx - 1, chTop, 11, 2)
+  // a silhouette cat in a lit window
+  sprite(houses, CAT_SIT, houseL[0] + 15, houseL[2] + 6, 0.7, { '#': fill('#1e1836') })
+  // the black cat on the left roof ridge, eyes blinking, tail swaying
+  {
+    const x = houseL[0] + houseL[1] / 2 - 4.5 * s
+    const y = houseL[2] - houseL[3] - 10 * s
+    sprite(pets, CAT_SIT, x, y, s, { '#': fill('#0c0a14'), e: fill('#0c0a14'), n: fill('#ff8fb0') }, { outline: fill('#5a4a8a', 0.6) })
+    for (const ex of [2, 6]) petGlow.px(`${fill('#7dff6a')} class="ey"`, x + ex * s, y + 3 * s, s, s)
+    const tail = new Layer()
+    for (const [tx, ty] of TAIL) tail.px(fill('#0c0a14'), x + (8 + tx) * s, y + (9 + ty) * s, s, s)
+    pets.raw(`<g class="wg" ${rot(x + 8 * s, y + 10 * s)}>${tail.svg()}</g>`)
+    // a speech bubble now and then
+    const bx = x + 10 * s
+    const by = y - 8
+    pets.raw(`<g class="tw3"><rect x="${num(bx)}" y="${num(by)}" width="19" height="6" fill="#f4efff" opacity="0.92"/><rect x="${num(bx + 1)}" y="${num(by + 6)}" width="2" height="1.5" fill="#f4efff" opacity="0.92"/></g>`)
+    text(pets, 'MEOW', bx + 1.8, by + 1.6, 0.6, `${fill('#2a1e3a')} class="tw3"`)
+  }
+  // the tabby on the chimney
+  {
+    const x = chx + 4.5 - 4.5 * s
+    const y = chTop - 10 * s
+    sprite(pets, TABBY, x, y, s, { '#': fill('#ff9a3c'), s: fill('#c8641e'), w: fill('#fff0d8'), e: fill('#2a1a0a'), n: fill('#ff6f8f') })
+    const tail = new Layer()
+    for (const [tx, ty] of TAIL) tail.px(fill(ty % 2 ? '#c8641e' : '#ff9a3c'), x + (8 + tx) * s, y + (9 + ty) * s, s, s)
+    pets.raw(`<g class="wg" style="transform-origin:${num(x + 8 * s)}px ${num(y + 10 * s)}px;animation-delay:-.5s">${tail.svg()}</g>`)
+  }
+  // a white cat asleep on the left roof, dreaming
+  {
+    const x = houseL[0] + houseL[1] * 0.74
+    const y = houseL[2] - houseL[3] * 0.42 - 6 * s
+    sprite(pets, CAT_SLEEP, x, y, s * 0.9, { '#': fill('#f4efff'), '-': fill('#5a4a8a') }, { outline: fill('#8a7ac0', 0.5) })
+    for (const k of [1, 2, 3]) text(petGlow, 'Z', x + 9 * s + k * 2, y - 2 - k * 2, 0.5 + k * 0.12, `${fill('#cfc8ff', 0.9)} class="up${k}"`)
+  }
+  // a grey cat walking along the garden wall, past a ball of yarn
+  {
+    const wy = H - (isTall ? 10 : 8)
+    houses.px(fill('#2a2448'), 0, wy, W, H - wy)
+    houses.px(fill('#3a3460'), 0, wy, W, 0.8)
+    for (let x = 0; x < W; x += 8) houses.px(fill('#221e3e'), x, wy + 2, 0.5, H - wy)
+    moving(pets, 'cw', a => sprite(a, CAT_WALK, isTall ? 60 : 120, wy - 7 * s, s, { '#': fill('#8a8aa0'), e: fill('#ffd23f'), n: fill('#ff8fb0') }))
+    disc(pets, isTall ? W - 30 : W - 50, wy - 2.5, 2.5, fill('#e84a6a'))
+    pets.px(fill('#ff8fa8'), isTall ? W - 31 : W - 51, wy - 4, 2, 0.6)
+    pets.px(fill('#e84a6a'), isTall ? W - 27.5 : W - 47.5, wy - 0.6, 6, 0.5)
+  }
+  const extra = radial('moonWarm', '#fff2c4', 0.28)
+  return { W, H, defs: extra, body: svgOf(bg, far, farGlow, houses, lit) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(pets, petGlow) }
+}
+
+// ---- Dog Park: a sunny park, dogs chasing balls and frisbees
+const DOG_RUN = ['...........rr.', '..........####', '#.........##e#n', '.#........####.', '.##########....', '.##########....', '..#######......']
+const DOG_SIT = ['..rr......', '.####.....', 'n#e##.....', '.####.....', '..###.....', '..#####...', '..######..', '..#######.', '..##.####.', '..##.##.##']
+const SPOTTY = ['..kk......', '.####.....', 'n#e##.....', '.####.....', '..#k#.....', '..###k#...', '..#k####..', '..####k##.', '..##.####.', '..##.##.##']
+
+function runningDog(L, x, y, s, body, ear, legs = true) {
+  sprite(L, DOG_RUN, x, y, s, { '#': fill(body), r: fill(ear), e: fill('#1a1008'), n: fill('#1a1008') })
+  const leg = (cls, pts) => {
+    const g = new Layer()
+    for (const [lx, ly] of pts) g.px(fill(body), x + lx * s, y + ly * s, s, s)
+    L.raw(cls ? `<g class="${cls}">${g.svg()}</g>` : g.svg())
+  }
+  if (legs) {
+    leg('ra', [[2, 7], [1, 8], [9, 7], [10, 8]])
+    leg('rb', [[3, 7], [4, 8], [8, 7], [7, 8]])
+  } else leg('', [[1, 7], [0, 8], [10, 7], [11, 8]])
+}
+
+function dogs(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1212 : 1213)
+  const HY = Math.round(H * (isTall ? 0.64 : 0.56))
+  const bg = new Layer()
+  const sky = new Layer()
+  const hills = new Layer()
+  const trees = new Layer()
+  const grass = new Layer()
+  const props = new Layer()
+  const pets = new Layer()
+  bg.px(fill('#4f9fef'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#4f9fef'], [0.65, '#9fd2ff'], [1, '#d6efff']])
+  const sx = Math.round(W * (isTall ? 0.2 : 0.14))
+  const sy = Math.round(H * (isTall ? 0.08 : 0.16))
+  bg.raw(`<circle cx="${sx}" cy="${sy}" r="30" fill="url(#sunPark)"/>`)
+  disc(sky, sx, sy, 9, fill('#fff4b0'))
+  disc(sky, sx, sy, 6, fill('#fffde8'))
+  moving(sky, 'dt', a => {
+    for (const [cx, cy, cw] of isTall ? [[60, 30, 34], [110, 70, 40], [20, 110, 30]] : [[70, 20, 40], [150, 36, 48], [230, 18, 36], [270, 54, 40]]) cloud(a, cx, cy, cw)
+  })
+  // a frisbee sailing across
+  moving(sky, 'fy', a => {
+    const x = isTall ? 120 : 200
+    const y = Math.round(H * (isTall ? 0.36 : 0.3))
+    a.px(fill('#ff4fd8'), x, y, 6, 1.2)
+    a.px(fill('#ff9ae8'), x + 1, y - 0.6, 4, 0.6)
+  })
+  // hills and a row of trees
+  for (const [color, lift, amp, f] of [['#86c86a', 14, 6, 0.03], ['#6ab858', 6, 4, 0.05]]) {
+    const ph = rand() * 6
+    for (let x = 0; x < W; x += 2) {
+      const y = Math.round(HY - lift - amp * Math.sin(x * f + ph))
+      hills.px(fill(color), x, y, 2, HY - y + 1)
+    }
+  }
+  for (let x = 4; x < W; x += 14 + Math.floor(rand() * 10)) {
+    const r = 5 + Math.floor(rand() * 4)
+    trees.px(fill('#6b4a2b'), x - 0.5, HY - 6, 1.5, 6)
+    disc(trees, x, HY - 6 - r, r, fill('#3f9a4a'))
+    disc(trees, x - 1, HY - 7 - r, r - 2, fill('#5cc05a'))
+  }
+  // the grass, a path, flowers
+  band(grass, W, HY, H, [[0, '#6ad050'], [1, '#3f9a36']])
+  {
+    const py = Math.round(H * (isTall ? 0.82 : 0.8))
+    for (let x = 0; x < W; x += 2) {
+      const y = Math.round(py + 3 * Math.sin(x * 0.03))
+      grass.px(fill('#e8d29a'), x, y, 2, 8)
+      grass.px(fill('#cdb478'), x, y, 2, 0.8)
+    }
+  }
+  for (let i = 0; i < (isTall ? 50 : 80); i++) {
+    const x = Math.floor(rand() * W)
+    const y = HY + 2 + Math.floor(rand() * (H - HY - 3))
+    if (rand() < 0.25) grass.px(fill(['#ff5a7a', '#ffd23f', '#ffffff', '#c86bff'][Math.floor(rand() * 4)]), x, y, 1, 1)
+    else grass.px(fill('#8ee86a', 0.8), x, y, 0.5, 1.5)
+  }
+  // a big shade tree on the right, a dog asleep beneath it
+  {
+    const tx = Math.round(W * (isTall ? 0.84 : 0.88))
+    const ty = HY + (isTall ? 26 : 22)
+    props.raw(`<ellipse cx="${tx}" cy="${ty + 1}" rx="24" ry="4" fill="#000" opacity="0.15"/>`)
+    props.px(fill('#6b4a2b'), tx - 2, ty - 26, 4, 26)
+    props.px(fill('#8f6539'), tx - 2, ty - 26, 1, 26)
+    for (const [dx, dy, r] of [[-12, -30, 10], [10, -32, 10], [0, -40, 12], [-4, -26, 8]]) disc(props, tx + dx, ty + dy, r, fill('#2f8a40'))
+    for (const [dx, dy, r] of [[-12, -33, 6], [8, -35, 6], [-1, -44, 7]]) disc(props, tx + dx, ty + dy, r, fill('#4cb050'))
+    const sleeper = new Layer()
+    sprite(sleeper, CAT_SLEEP, tx - 22, ty - 6, 1, { '#': fill('#c88a4a'), '-': fill('#5a3a1a') })
+    props.raw(sleeper.svg())
+    for (const k of [1, 2, 3]) text(props, 'Z', tx - 12 + k * 2, ty - 10 - k * 2, 0.5 + k * 0.12, `${fill('#ffffff', 0.9)} class="up${k}"`)
+  }
+  // a bench, a lamp, a hydrant and the park sign
+  {
+    const bx = isTall ? 8 : 20
+    const by = HY + (isTall ? 20 : 16)
+    props.px(fill('#8f6539'), bx, by - 6, 22, 1.5)
+    props.px(fill('#8f6539'), bx, by - 3.5, 22, 1.5)
+    props.px(fill('#3a3a40'), bx + 2, by - 2, 1, 3)
+    props.px(fill('#3a3a40'), bx + 19, by - 2, 1, 3)
+    const hx = isTall ? W - 70 : W - 100
+    const hy = HY + (isTall ? 30 : 26)
+    props.px(fill('#e0242b'), hx, hy - 6, 3, 6)
+    props.px(fill('#e0242b'), hx - 1, hy - 4, 5, 1.2)
+    props.px(fill('#ff6a5a'), hx, hy - 7, 3, 1)
+    const gx = isTall ? W - 40 : W - 140
+    const gy = HY + 4
+    props.px(fill('#6b4a2b'), gx + 4, gy - 10, 1, 10)
+    props.px(fill('#6b4a2b'), gx + 20, gy - 10, 1, 10)
+    props.px(fill('#8f6539'), gx, gy - 16, 25, 8)
+    props.px(fill('#b07c46'), gx, gy - 16, 25, 0.6)
+    text(props, 'DOG PARK', gx + 1.5, gy - 14.6, 0.55, fill('#fff0c8'))
+    text(props, 'GOOD BOYS', gx + 3, gy - 11.2, 0.45, fill('#fff0c8', 0.85))
+  }
+  // the dogs
+  const s = isTall ? 1.4 : 1.7
+  {
+    // chasing a ball across the park
+    const y = Math.round(H * (isTall ? 0.86 : 0.84)) - 9 * s
+    moving(pets, 'cw2', a => {
+      const x = isTall ? 40 : 80
+      runningDog(a, x, y, s, '#a8642e', '#6a3a1a')
+      const ball = new Layer()
+      disc(ball, x + 22 * s, y + 6 * s, 1.6 * s, fill('#e0242b'))
+      ball.px(fill('#ff8a7a'), x + 21.5 * s, y + 5 * s, 0.8 * s, 0.8 * s)
+      a.raw(`<g class="hop">${ball.svg()}</g>`)
+    })
+  }
+  {
+    // jumping for a frisbee
+    const x = Math.round(W * (isTall ? 0.36 : 0.3))
+    const y = HY + (isTall ? 16 : 12)
+    const jumper = new Layer()
+    runningDog(jumper, x, y - 9 * s, s, '#f0c060', '#c89038', false)
+    jumper.px(fill('#38c8ff'), x + 13 * s, y - 8.5 * s, 4 * s, 1 * s)
+    pets.raw(`<g class="jp">${jumper.svg()}</g>`)
+    pets.raw(`<ellipse cx="${num(x + 7 * s)}" cy="${num(y + 0.5)}" rx="${num(6 * s)}" ry="1" fill="#000" opacity="0.15"/>`)
+  }
+  {
+    // a spotty dog sitting by the bench, wagging
+    const x = isTall ? 34 : 48
+    const y = HY + (isTall ? 20 : 16) - 10 * s
+    sprite(pets, SPOTTY, x, y, s, { '#': fill('#f4f4f4'), k: fill('#1a1a1a'), e: fill('#1a1a1a'), n: fill('#1a1a1a') }, { outline: fill('#5a5a5a', 0.35) })
+    const tail = new Layer()
+    for (const [tx, ty] of [[0, 0], [1, -1], [1, -2], [2, -3]]) tail.px(fill('#f4f4f4'), x + (9 + tx) * s, y + (8 + ty) * s, s, s)
+    pets.raw(`<g class="wg" ${rot(x + 9 * s, y + 9 * s)}>${tail.svg()}</g>`)
+  }
+  const extra = radial('sunPark', '#fff6b0', 0.6) + calmOf('calmPark', '#0a2a20', 0.42, 0.25)
+  return { W, H, defs: extra, scan: false, body: svgOf(bg, sky, hills, trees, grass, props, pets) + `<rect width="${W}" height="${H}" fill="url(#calmPark)"/>` }
+}
+
 // ---------------------------------------------------------------- reactions
 // Drawn over any scene for a few seconds, as SVG pieces in the scene's own
 // coordinates: fireworks when Claude finishes a long task, a red alert when tests fail.
@@ -1577,9 +2670,18 @@ function alert(W, H) {
 // ---------------------------------------------------------------- output
 const BUILDERS = {
   'neon-miami': { label: 'Neon Miami', sky: C.bg, wide: () => wide(), tall: () => tall() },
-  'blocklands-day': { label: 'Blocklands Day', sky: VD.bg, wide: () => voxel(320, 180, true), tall: () => voxel(180, 320, true) },
+  'dune-sea': { label: 'Dune Sea', sky: '#2a1640', wide: () => desert(320, 180), tall: () => desert(180, 320) },
+  'deep-space': { label: 'Deep Space', sky: '#02010a', wide: () => space(320, 180), tall: () => space(180, 320) },
   'neon-rain': { label: 'Neon Rain', sky: RC.bg, wide: () => cyber(320, 180), tall: () => cyber(180, 320) },
+  'grand-prix': { label: 'Grand Prix', sky: '#03040c', wide: () => race(320, 180), tall: () => race(180, 320) },
+  'rooftop-cats': { label: 'Rooftop Cats', sky: '#07061a', wide: () => cats(320, 180), tall: () => cats(180, 320) },
+  'blocklands-day': { label: 'Blocklands Day', sky: VD.bg, wide: () => voxel(320, 180, true), tall: () => voxel(180, 320, true) },
+  'ai-lab': { label: 'AI Lab', sky: '#02050e', wide: () => ai(320, 180), tall: () => ai(180, 320) },
+  'black-hole': { label: 'Black Hole', sky: '#010103', wide: () => blackHole(320, 180), tall: () => blackHole(180, 320) },
   'night-ops': { label: 'Night Ops', sky: OC.bg, wide: () => ops(320, 180), tall: () => ops(180, 320) },
+  'dog-park': { label: 'Dog Park', sky: '#4f9fef', wide: () => dogs(320, 180), tall: () => dogs(180, 320) },
+  'desert-lab': { label: 'Desert Lab', sky: '#04050d', wide: () => lab(320, 180), tall: () => lab(180, 320) },
+  'gargoyle-city': { label: 'Gargoyle City', sky: '#04060c', wide: () => gothic(320, 180), tall: () => gothic(180, 320) },
   blocklands: { label: 'Blocklands Night', sky: VC.bg, wide: () => voxel(320, 180), tall: () => voxel(180, 320) },
 }
 const out = {}
@@ -1594,16 +2696,32 @@ for (const [name, b] of Object.entries(BUILDERS)) {
 }
 
 const names = Object.keys(out)
+// One module per scene: the engine reads a module only up to 1 MB.
+const sceneDir = join(root, 'hooks', 'scenes')
+rmSync(sceneDir, { recursive: true, force: true })
+mkdirSync(sceneDir)
+const ident = name => name.replace(/-(.)/g, (_, c) => c.toUpperCase())
+for (const name of names) {
+  writeFileSync(
+    join(sceneDir, `${name}.ts`),
+    `// Generated by dev/build-scene.mjs. Do not edit by hand.
+export default ${JSON.stringify(out[name], null, 1)} as const
+`,
+  )
+}
 const ts = `// Generated by dev/build-scene.mjs. Do not edit by hand: change the script and run it again.
 // The scenes the theme draws behind the conversation: wide on the desktop app,
-// tall on the mobile app. STYLE is the blinking lights; without it, a scene is still.
+// tall on the mobile app, one module each in ./scenes. STYLE is what moves; without it, a scene is still.
+${names.map(n => `import ${ident(n)} from './scenes/${n}'`).join('\n')}
 
 export const STYLE = ${JSON.stringify(STYLE)}
 
 export const SCENE_NAMES = ${JSON.stringify(names)} as const
 export type SceneName = (typeof SCENE_NAMES)[number]
 
-export const SCENES: { readonly [K in SceneName]: { readonly label: string; readonly sky: string; readonly wide: string; readonly tall: string } } = ${JSON.stringify(out, null, 1)}
+export const SCENES: { readonly [K in SceneName]: { readonly label: string; readonly sky: string; readonly wide: string; readonly tall: string } } = {
+${names.map(n => `  ${JSON.stringify(n)}: ${ident(n)},`).join('\n')}
+}
 
 // Pieces drawn over a scene for a few seconds: placed just before its </svg>.
 export const REACTIONS = ${JSON.stringify({

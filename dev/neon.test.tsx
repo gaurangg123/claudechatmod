@@ -66,7 +66,10 @@ test('a session sends the look once: the backdrop, glass and a text palette', as
 test('desktop and mobile draw every scene as an animated Svg', async ($, on) => {
   mock.store(on)
   mock.clock(on)
-  for (const scene of ['neon-miami', 'blocklands-day', 'neon-rain', 'night-ops', 'blocklands']) {
+  for (const scene of [
+    'neon-miami', 'dune-sea', 'deep-space', 'neon-rain', 'grand-prix', 'rooftop-cats', 'blocklands-day',
+    'ai-lab', 'black-hole', 'night-ops', 'dog-park', 'desert-lab', 'gargoyle-city', 'blocklands',
+  ]) {
     for (const surface of ['desktop', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...backdrop, surface, props: { ...backdrop.props, scene } })
       const svg = await ui.find({ type: 'Svg' })
@@ -82,8 +85,8 @@ test('/neon scene and /neon next change the picture, not the look', async ($, on
   const sets = await start($, on)
   expect(JSON.stringify(await run($, 'scene night-ops'))).toContain('Night Ops')
   expect((await drawn($)).alt).toContain('Night Ops')
-  expect(JSON.stringify(await run($, 'next'))).toContain('Blocklands Night')
-  expect((await drawn($)).alt).toContain('Blocklands Night')
+  expect(JSON.stringify(await run($, 'next'))).toContain('Dog Park')
+  expect((await drawn($)).alt).toContain('Dog Park')
   expect(JSON.stringify(await run($, 'every 15'))).toContain('15 min')
   expect(sets.length).toBe(1)
 })
@@ -97,10 +100,10 @@ test('the slideshow moves to the next scene every minute, with a fade', async ($
   expect((await drawn($)).alt).toContain('Neon Miami')
   await clock.advance(35_000)
   const day = await drawn($)
-  expect(day.alt).toContain('Blocklands Day')
+  expect(day.alt).toContain('Dune Sea')
   expect(day.source).toContain('class="fi"')
   await clock.advance(60_000)
-  expect((await drawn($)).alt).toContain('Neon Rain')
+  expect((await drawn($)).alt).toContain('Deep Space')
 })
 
 test('fireworks show when a long task finishes, then go', async ($, on) => {
@@ -126,6 +129,17 @@ test('/neon alert shows the alert, and /neon reactions off stops the fireworks',
   await run($, 'reactions off')
   await $.turn.complete({ answer: 'Done.', durationMs: 45_000, isAborted: false, turnId: 't3', reason: 'answer' })
   expect((await drawn($)).source).not.toContain('class="fw1"')
+})
+
+test('a failing test run shows the red alert', async ($, on) => {
+  mock.store(on)
+  mock.clock(on, { now: 0 })
+  on('tool.call', () => ({ result: {}, text: '2 tests failed', isError: true }) as never)
+  await start($, on)
+  await $.tool.call({ tool: 'Bash', command: 'ls' })
+  expect((await drawn($)).source).not.toContain('alertEdge')
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  expect((await drawn($)).source).toContain('alertEdge')
 })
 
 test('the terminal band is a 4-row Raster above the prompt', async ($, on) => {
