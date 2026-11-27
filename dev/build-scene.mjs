@@ -766,6 +766,23 @@ const STYLE = `<style>
 @keyframes wv{0%,100%{transform:skewY(0)}50%{transform:skewY(10deg)}}
 .wv{animation:wv .8s ease-in-out infinite}
 ${[0, 1, 2, 3, 4].map(i => `@keyframes g${i}{0%,${9 + 10 * i}%{opacity:.12}${10 + 10 * i}%,70%{opacity:1}71%,100%{opacity:.12}}.g${i}{animation:g${i} 6s steps(1,end) infinite}`).join('\n')}
+@keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+.eq1,.eq2,.eq3,.eq4,.fj,.fj2{transform-box:fill-box;transform-origin:50% 100%}
+.eq1{animation:eq .46s ease-in-out infinite}
+.eq2{animation:eq .62s ease-in-out infinite -.2s}
+.eq3{animation:eq .38s ease-in-out infinite -.1s}
+.eq4{animation:eq .7s ease-in-out infinite -.35s}
+@keyframes ls{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(24deg)}}
+.ls1{animation:ls 3.2s ease-in-out infinite}
+.ls2{animation:ls 3.2s ease-in-out infinite -1.6s}
+@keyframes fj{0%,100%{transform:scaleY(.35);opacity:.7}40%{transform:scaleY(1);opacity:1}70%{transform:scaleY(.6)}}
+.fj{animation:fj .9s ease-in-out infinite}
+.fj2{animation:fj .9s ease-in-out infinite -.45s}
+.sp{animation:sw 1.8s linear infinite}
+@keyframes hb{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+.hb1{animation:hb .48s ease-in-out infinite}
+.hb2{animation:hb .48s ease-in-out infinite -.24s}
+.ls1,.ls2,.sp,.hb1,.hb2{will-change:transform}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.gl{opacity:0}}
 </style>`
 
@@ -2624,6 +2641,579 @@ function dogs(W, H) {
   return { W, H, defs: extra, scan: false, body: svgOf(bg, sky, hills, trees, grass, props, pets) + `<rect width="${W}" height="${H}" fill="url(#calmPark)"/>` }
 }
 
+// ---------------------------------------------------------------- music and grid scenes
+// Eight more: a glowing grid world, a robot disco, a bedroom loop studio, a dark
+// arena stage, a metal stage in a storm, a stadium at sunset, a DJ booth and a
+// festival main stage. Moods only: no band's or film's names, logos or faces.
+
+// A crowd along y: heads and shoulders, hands up bouncing, a few glowsticks.
+function crowd(L, rand, W, y, H, body, sticks = []) {
+  const up = [new Layer(), new Layer()]
+  for (let x = -1; x < W; x += 2.4 * (0.8 + rand() * 0.5)) {
+    const lift = Math.round(rand() * 2) / 2
+    L.px(fill(body), x, y - lift + 1.2, 2.2, H - y + lift)
+    L.px(fill(body), x + 0.4, y - lift - 0.4, 1.4, 1.6)
+    if (rand() < 0.38) {
+      const g = up[rand() < 0.5 ? 0 : 1]
+      g.px(fill(body), x - 0.4, y - lift - 3.6, 0.6, 3.8)
+      g.px(fill(body), x + 2, y - lift - 3.3, 0.6, 3.5)
+      if (sticks.length && rand() < 0.35) g.px(fill(sticks[Math.floor(rand() * sticks.length)]), x - 0.5, y - lift - 5, 0.8, 1.6)
+    }
+  }
+  L.raw(`<g class="hb1">${up[0].svg()}</g><g class="hb2">${up[1].svg()}</g>`)
+}
+
+// A fan of laser beams from (x, y), sweeping.
+function lasers(L, x, y, color, n, len, spread, cls, base = -Math.PI / 2) {
+  let beams = ''
+  for (let k = 0; k < n; k++) {
+    const a = base + (k - (n - 1) / 2) * spread
+    const ex = x + Math.cos(a) * len
+    const ey = y + Math.sin(a) * len
+    beams += `<polygon points="${num(x)},${num(y)} ${num(ex - 0.7)},${num(ey - 0.7)} ${num(ex + 0.7)},${num(ey + 0.7)}" fill="${color}" opacity="0.5"/>`
+  }
+  L.raw(`<g class="${cls}" ${rot(x, y)} shape-rendering="geometricPrecision">${beams}</g>`)
+}
+
+// Equalizer bars that bounce.
+function eqBars(L, x, y, n, w, gap, h, colors) {
+  let out = ''
+  for (let k = 0; k < n; k++) {
+    const bh = h * (0.5 + ((k * 7) % 5) / 10)
+    out += `<rect class="eq${1 + (k % 4)}" x="${num(x + k * (w + gap))}" y="${num(y - bh)}" width="${num(w)}" height="${num(bh)}" fill="${colors[k % colors.length]}"/>`
+  }
+  L.raw(out)
+}
+
+function flame(L, x, y, h, cls) {
+  const f = new Layer()
+  for (let r = 0; r < h; r++) {
+    const t = r / h
+    const w = 0.8 + 3.4 * Math.pow(t, 0.7)
+    f.px(fill(t < 0.35 ? '#ff4a1a' : t < 0.7 ? '#ffb020' : '#fff3b0', t < 0.35 ? 0.75 : 0.95), x - w / 2, y - h + r, w, 1)
+  }
+  L.raw(`<g class="${cls}">${f.svg()}</g>`)
+}
+
+function cabinet(L, x, y, w, h) {
+  L.px(fill('#0c0c10'), x, y, w, h)
+  L.px(fill('#2a2a32'), x, y, w, 0.6)
+  for (let gy = y + 1.6; gy < y + h - 0.8; gy += 1.2) L.px(fill('#18181e'), x + 1, gy, w - 2, 0.5)
+  L.px(fill('#b8b8c4', 0.8), x + w / 2 - 2, y + 0.9, 4, 0.8)
+}
+
+// ---- Light Grid: a glowing grid world, light-bikes racing
+const BIKE = ['....####......', '..########....', '.###########..', '@@@#######@@@.', '@.@.......@.@.', '@@@.......@@@.']
+
+function lightGrid(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 3301 : 3302)
+  const HY = Math.round(H * (isTall ? 0.58 : 0.5))
+  const bg = new Layer()
+  const far = new Layer()
+  const floor = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const bikes = new Layer()
+  const hud = new Layer()
+  const hudGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#000308'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#000308'], [0.7, '#001428'], [1, '#00334a']])
+  dots(bg, rand, [0, 0, W, HY * 0.7], isTall ? 40 : 60, ['#9ff0ff', '#ffffff'], [0.2, 0.5], 0.3)
+  bg.raw(`<ellipse cx="${W / 2}" cy="${HY}" rx="${W * 0.6}" ry="22" fill="url(#hz)"/>`)
+  // digital mountains, outlined
+  for (const [lift, amp, op] of [[10, 18, 0.45], [2, 10, 0.75]]) {
+    let d = `M0 ${HY}`
+    let h = amp / 2
+    for (let x = 0; x <= W; x += 6) {
+      h = Math.max(1, Math.min(amp, h + (rand() - 0.5) * amp * 0.7))
+      const mid = Math.abs(x - W / 2) < W * 0.18
+      d += `L${x} ${num(HY - lift - (mid ? h * 0.25 : h))}`
+    }
+    far.raw(`<path d="${d}L${W} ${HY}Z" fill="#000a14" stroke="#00e5ff" stroke-opacity="${op}" stroke-width="0.4"/>`)
+  }
+  glow.px(fill('#00e5ff'), 0, HY, W, 0.6)
+  // the floor grid, in perspective
+  floor.px(fill('#00060c'), 0, HY + 0.6, W, H - HY)
+  let d = ''
+  for (let k = 1; k <= 14; k++) {
+    const y = HY + (H - HY) * Math.pow(k / 14, 2)
+    d += `M0 ${num(y)}H${W}`
+  }
+  const vy = HY - 30
+  for (let xb = -W * 1.5; xb <= W * 2.5; xb += W / 12) d += `M${num(W / 2 + ((xb - W / 2) * (HY - vy)) / (H - vy))} ${HY}L${num(xb)} ${H}`
+  floor.raw(`<path d="${d}" stroke="#00e5ff" stroke-width="0.35" opacity="0.4" fill="none"/>`)
+  // light-bikes with their trails
+  const lanes = [[HY + (H - HY) * 0.28, 'd6', '#ff9a1a', 'trO', 0.6], [HY + (H - HY) * 0.6, 'd5', '#00e5ff', 'trC', 0.9]]
+  for (const [y, cls, color, tr, s] of lanes) {
+    moving(bikes, cls, a => {
+      const x = isTall ? 60 : 120
+      a.raw(`<rect x="${x - 70}" y="${num(y + 1.5 * s)}" width="70" height="${num(2 * s)}" fill="url(#${tr})"/>`)
+      sprite(a, BIKE, x, y, s, { '#': fill('#0a1420'), '@': fill(color) }, { outline: fill(color, 0.95) })
+    })
+  }
+  panel(hud, hudGlow, 8, 8, 56, 'GRID.SYS', [
+    [['USER ', '#5a8aa8'], ['YOU', '#9ff0ff']],
+    [['PROGRAM ', '#5a8aa8'], ['CLAUDE', '#ff9a1a']],
+    [['STATUS ', '#5a8aa8'], ['ONLINE', '#3dff8a', 'blink']],
+  ], '#00e5ff')
+  const trail = (id, c) => `<linearGradient id="${id}"><stop offset="0" stop-color="${c}" stop-opacity="0"/><stop offset="1" stop-color="${c}" stop-opacity="0.9"/></linearGradient>`
+  const extra = radial('hz', '#00e5ff', 0.35) + trail('trC', '#00e5ff') + trail('trO', '#ff9a1a')
+  return { W, H, defs: extra, body: svgOf(bg, far, floor, glow, bikes) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(hud, hudGlow) }
+}
+
+// ---- Robot Disco: a robot DJ, an LED pyramid, a disco ball
+const ROBOT_DJ = ['....##....', '...####...', '..######..', '..#vvvv#..', '..######..', '...####...', '.########.', '##########', '##.####.##']
+
+function robotDisco(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 4401 : 4402)
+  const HY = Math.round(H * (isTall ? 0.76 : 0.72))
+  const bg = new Layer()
+  const stage = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer('opacity="0.3"')
+  bg.px(fill('#06020e'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#06020e'], [0.7, '#1a0830'], [1, '#2a0c3a']])
+  // the LED pyramid
+  const cx = W / 2
+  const cell = 3.2
+  const rows = isTall ? 14 : 16
+  const palette = ['#ff3fa8', '#ffd23f', '#38e8ff', '#9b4dff']
+  for (let r = 0; r < rows; r++) {
+    const n = r * 2 + 1
+    for (let c = 0; c < n; c++) {
+      const x = cx - (n * cell) / 2 + c * cell
+      const y = HY - 12 - (rows - r) * cell
+      stage.px(`${fill(palette[(r + c) % 4], 0.8)} class="${['tw1', 'tw2', 'tw3', 'pu'][(r * 3 + c) % 4]}"`, x + 0.3, y + 0.3, cell - 0.6, cell - 0.6)
+    }
+  }
+  // the disco ball and its rays
+  const by = Math.round(H * (isTall ? 0.14 : 0.1))
+  stage.px(fill('#5a5a6a'), cx - 0.2, 0, 0.4, by - 7)
+  disc(stage, cx, by, 7, fill('#8a8aa0'))
+  for (let y = by - 7; y < by + 7; y += 1.6) for (let x = cx - 7; x < cx + 7; x += 1.6) {
+    if ((x - cx) ** 2 + (y - by) ** 2 < 42) stage.px(fill(((x + y) * 10) % 3 < 1.2 ? '#f4f4ff' : '#b8b8cc', 0.9), x, y, 1.2, 1.2)
+  }
+  for (let k = 0; k < 14; k++) glow.px(`${fill(palette[k % 4])} class="tw${1 + (k % 3)}"`, cx + (rand() - 0.5) * W * 0.9, by + rand() * H * 0.4, 0.8, 0.8)
+  lasers(bg, cx, by, '#ffffff', 4, W * 0.6, 0.5, 'ls1', Math.PI / 2)
+  // the decks and the robot DJ
+  const s = isTall ? 1.4 : 1.6
+  sprite(stage, ROBOT_DJ, cx - 5 * s, HY - 12 - 9 * s, s, { '#': fill('#c8ccd6'), v: fill('#1a1020') }, { outline: fill('#ffd23f', 0.5) })
+  glow.px(`${fill('#ff3fa8')} class="fl"`, cx - 2 * s, HY - 12 - 6 * s, 4 * s, s)
+  stage.px(fill('#1a1030'), cx - 22, HY - 12, 44, 6)
+  glow.px(fill('#ff3fa8', 0.9), cx - 22, HY - 12, 44, 0.5)
+  for (const dx of [-13, 13]) {
+    const t = new Layer()
+    disc(t, cx + dx, HY - 9, 3.5, fill('#0a0a12'))
+    t.px(fill('#f4f4ff'), cx + dx - 0.3, HY - 12.5, 0.6, 2.5)
+    stage.raw(`<g class="sp" ${rot(cx + dx, HY - 9)}>${t.svg()}</g>`)
+  }
+  // speakers, and a dance floor that lights up
+  for (const x of [isTall ? 4 : 12, isTall ? W - 22 : W - 34]) {
+    stage.px(fill('#0e0a18'), x, HY - 30, isTall ? 18 : 22, 30)
+    disc(stage, x + (isTall ? 9 : 11), HY - 20, isTall ? 6 : 7, fill('#2a2038'))
+    disc(stage, x + (isTall ? 9 : 11), HY - 20, 2.5, fill('#4a3a60'))
+    disc(stage, x + (isTall ? 9 : 11), HY - 6, 3, fill('#2a2038'))
+  }
+  const tw = 10
+  for (let y = HY; y < H; y += 5) for (let x = 0; x < W; x += tw) {
+    front.px(`${fill(palette[Math.floor(rand() * 4)])} class="${['tw1', 'tw2', 'tw3'][Math.floor(rand() * 3)]}"`, x + 0.5, y + 0.5, tw - 1, 4)
+  }
+  return { W, H, body: svgOf(bg, stage, glow, front) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` }
+}
+
+// ---- Loop Room: a late-night bedroom studio, pads lighting up
+function loopRoom(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 5501 : 5502)
+  const HY = Math.round(H * (isTall ? 0.8 : 0.8))
+  const bg = new Layer()
+  const room = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const desk = new Layer()
+  const deskGlow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#120c1a'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#0c0812'], [1, '#1e1430']])
+  // the window, a city asleep outside
+  const wx = isTall ? 10 : 14
+  const wy = isTall ? 40 : 14
+  const ww = isTall ? 60 : 70
+  const wh = isTall ? 50 : 46
+  room.px(fill('#0a1230'), wx, wy, ww, wh)
+  for (let x = wx; x < wx + ww;) {
+    const w = 5 + Math.floor(rand() * 7)
+    const t = wy + wh - 6 - Math.floor(rand() * 20)
+    room.px(fill('#060a1e'), x, t, Math.min(w, wx + ww - x), wy + wh - t)
+    for (let i = 0; i < 3; i++) if (rand() < 0.7) glow.px(fill('#ffd27a', 0.6), x + 1 + Math.floor(rand() * Math.max(1, w - 2)), t + 2 + Math.floor(rand() * 8), 0.8, 0.8)
+    x += w + 1
+  }
+  disc(room, wx + ww - 12, wy + 10, 4, fill('#f4ecd0'))
+  for (const [x, y, w, h] of [[wx - 1, wy - 1, ww + 2, 1.5], [wx - 1, wy + wh, ww + 2, 1.5], [wx - 1, wy, 1.5, wh], [wx + ww - 0.5, wy, 1.5, wh], [wx + ww / 2 - 0.5, wy, 1, wh]]) room.px(fill('#3a2a4a'), x, y, w, h)
+  // words thrown on the wall
+  const words = [['ONE MORE', 1.6], ['LOOP', 2.6]]
+  let ty = isTall ? 104 : 24
+  for (const [word, sc] of words) {
+    const tx = isTall ? (W - textWidth(word, sc * 0.75, FONT5)) / 2 : W - 20 - textWidth(word, sc, FONT5)
+    const scale = isTall ? sc * 0.75 : sc
+    text(room, word, tx + 0.8, ty + 0.6, scale, fill('#ff3fa8', 0.4), FONT5)
+    text(glow, word, tx, ty, scale, `${fill('#f4efff')} class="fl"`, FONT5)
+    ty += 6 * scale + 3
+  }
+  // a warm lamp
+  bg.raw(`<circle cx="${num(W * 0.12)}" cy="${HY - 10}" r="40" fill="url(#lamp)"/>`)
+  desk.px(fill('#4a3a2a'), W * 0.12 - 0.5, HY - 22, 1, 22)
+  desk.px(fill('#e8b050'), W * 0.12 - 4, HY - 26, 8, 4)
+  // the desk and its gear
+  desk.px(fill('#2a1e30'), 0, HY, W, 3)
+  desk.px(fill('#3a2a40'), 0, HY, W, 0.6)
+  desk.px(fill('#0c0810'), 0, HY + 3, W, H - HY - 3)
+  const mid = W / 2
+  // laptop with a waveform
+  const lx = isTall ? mid - 34 : mid - 50
+  desk.px(fill('#2a2a34'), lx, HY - 18, 30, 17)
+  desk.px(fill('#0a0a14'), lx + 1.5, HY - 16.5, 27, 14)
+  for (let x = 0; x < 25; x += 0.8) {
+    const a = Math.abs(Math.sin(x * 0.7) * Math.sin(x * 0.13)) * 5 + 0.4
+    deskGlow.px(fill(x < 14 ? '#ff3fa8' : '#38e8ff', 0.85), lx + 2.5 + x, HY - 9.5 - a, 0.5, a * 2)
+  }
+  deskGlow.px(`${fill('#ffffff')} class="blink"`, lx + 16.5, HY - 16, 0.5, 13)
+  desk.px(fill('#3a3a44'), lx - 2, HY - 1.2, 34, 1.2)
+  // the pad sampler
+  const px0 = isTall ? mid + 2 : mid - 10
+  desk.px(fill('#1a1a22'), px0, HY - 4, 26, 4)
+  desk.px(fill('#2a2a34'), px0, HY - 4, 26, 0.5)
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) {
+    deskGlow.px(`${fill(['#ff3fa8', '#38e8ff', '#ffd23f', '#3dff8a'][(r + c) % 4], 0.95)} class="g${(c + r * 2) % 5}"`, px0 + 1.2 + c * 4, HY - 3.4 + r * 1.6, 3, 1.2)
+  }
+  // speakers, the phone filming, headphones
+  for (const x of [isTall ? 2 : mid - 74, isTall ? W - 16 : mid + 60]) {
+    desk.px(fill('#16121e'), x, HY - 20, 14, 20)
+    disc(desk, x + 7, HY - 7, 4.5, fill('#2a2236'))
+    disc(desk, x + 7, HY - 7, 1.8, fill('#4a3a5a'))
+    disc(desk, x + 7, HY - 15, 2, fill('#2a2236'))
+  }
+  if (!isTall) {
+    const fx = mid + 30
+    desk.px(fill('#3a3a44'), fx + 3, HY - 10, 0.6, 10)
+    desk.px(fill('#0a0a10'), fx, HY - 20, 6.5, 10)
+    deskGlow.px(`${fill('#ff3b3b')} class="blink"`, fx + 1, HY - 19, 1, 1)
+    desk.raw(`<path d="M${mid + 44} ${HY}a5 5 0 0 1 10 0" fill="none" stroke="#5a4a6a" stroke-width="1.2"/>`)
+  }
+  const extra = radial('lamp', '#ffc46b', 0.28)
+  return { W, H, defs: extra, body: svgOf(bg, room, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(desk, deskGlow) }
+}
+
+// ---- Static Stage: a dark arena, a glitching screen, risers
+function staticStage(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 6601 : 6602)
+  const HY = Math.round(H * (isTall ? 0.74 : 0.7))
+  const bg = new Layer()
+  const screen = new Layer()
+  const stage = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer()
+  bg.px(fill('#050506'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#050506'], [0.7, '#120a0c'], [1, '#2a0e12']])
+  // the big screen, full of static
+  const sw = isTall ? 120 : 150
+  const sh = isTall ? 60 : 64
+  const sx = (W - sw) / 2
+  const sy = Math.round(H * (isTall ? 0.24 : 0.08))
+  screen.px(fill('#0e0e12'), sx, sy, sw, sh)
+  for (let i = 0; i < (isTall ? 500 : 700); i++) {
+    const g = Math.floor(rand() * 4)
+    screen.px(fill(['#3a3a40', '#6a6a74', '#a0a0aa', '#ff2a3a'][g], op1(0.2 + rand() * 0.4)), sx + Math.floor(rand() * sw * 2) / 2, sy + Math.floor(rand() * sh * 2) / 2, 0.5 + Math.floor(rand() * 3) * 0.5, 0.5)
+  }
+  for (let k = 0; k < 5; k++) {
+    const y = sy + 4 + rand() * (sh - 8)
+    screen.px(`${fill(k % 2 ? '#ff2a3a' : '#e8e8f0', 0.7)} class="gl"`, sx + rand() * 20, y, sw * (0.4 + rand() * 0.5), 1 + rand() * 2)
+  }
+  const word = 'STATIC'
+  text(screen, word, W / 2 - textWidth(word, 2) / 2 + 1, sy + sh / 2 - 4, 2, fill('#ff2a3a', 0.5))
+  text(glow, word, W / 2 - textWidth(word, 2) / 2, sy + sh / 2 - 5, 2, `${fill('#e8e8f0', 0.9)} class="fl"`)
+  // spotlights from above
+  for (const [fx, cls] of [[0.2, 'sl'], [0.8, 'sl'], [0.5, 'ls2']]) {
+    const x = W * fx
+    bg.raw(`<g class="${cls}" ${rot(x, 0)}><polygon points="${x - 1},0 ${x + 1},0 ${x + 16},${HY} ${x - 16},${HY}" fill="url(#spot)"/></g>`)
+  }
+  // the stage: risers, a drum kit, decks, mic stands, amps
+  stage.px(fill('#0e0e12'), 0, HY - 2, W, H - HY + 2)
+  glow.px(fill('#ff2a3a'), 0, HY - 2, W, 0.6)
+  const cx = W / 2
+  stage.px(fill('#16161c'), cx - 20, HY - 10, 40, 8)
+  stage.px(fill('#26262e'), cx - 20, HY - 10, 40, 0.6)
+  disc(stage, cx, HY - 15, 5, fill('#2a2a34'))
+  disc(stage, cx, HY - 15, 3.5, fill('#e8e8f0', 0.6))
+  for (const [dx, dy, r] of [[-8, -18, 2.5], [8, -18, 2.5], [-13, -14, 3]]) disc(stage, cx + dx, HY + dy, r, fill('#2a2a34'))
+  for (const dx of [-16, 14]) stage.px(fill('#c8a040', 0.8), cx + dx, HY - 24, 6, 0.6)
+  const dx0 = isTall ? 8 : cx - 70
+  stage.px(fill('#16161c'), dx0, HY - 10, 28, 8)
+  stage.px(fill('#0a0a0e'), dx0 + 2, HY - 14, 24, 4)
+  for (const dx of [8, 20]) disc(stage, dx0 + dx, HY - 13, 2.5, fill('#2a2a34'))
+  glow.px(`${fill('#ff2a3a')} class="blink"`, dx0 + 13.5, HY - 13.5, 1, 1)
+  for (const x of isTall ? [W * 0.35, W * 0.65] : [W * 0.3, W * 0.62, W * 0.72]) {
+    stage.px(fill('#3a3a44'), x, HY - 20, 0.6, 18)
+    stage.px(fill('#3a3a44'), x - 0.8, HY - 21, 2.2, 1.2)
+  }
+  for (const x of [isTall ? W - 26 : W - 40, isTall ? W - 26 : W - 58]) { cabinet(stage, x, HY - 14, 16, 12); cabinet(stage, x, HY - 26, 16, 12) }
+  crowd(front, rand, W, H - (isTall ? 26 : 22), H, '#1c1418', ['#ff2a3a', '#ffffff'])
+  const extra = `<linearGradient id="spot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/></linearGradient>`
+  return { W, H, defs: extra, body: svgOf(bg, screen, stage, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(front) }
+}
+
+// ---- Thunder Amps: a metal stage in a storm, walls of amps, fire
+function thunderAmps(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 7701 : 7702)
+  const HY = Math.round(H * (isTall ? 0.76 : 0.72))
+  const bg = new Layer()
+  const sky = new Layer()
+  const stage = new Layer()
+  const fire = new Layer()
+  const front = new Layer()
+  bg.px(fill('#05060c'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#05060c'], [0.6, '#121828'], [1, '#26304a']])
+  moving(sky, 'dt', a => {
+    for (let k = 0; k < (isTall ? 10 : 14); k++) {
+      const x = Math.floor(rand() * (W + 60)) - 40
+      const y = Math.floor(rand() * H * 0.35)
+      const w = 24 + Math.floor(rand() * 40)
+      a.px(fill('#1a2032', 0.9), x, y, w, 3)
+      a.px(fill('#2a3450', 0.7), x + 4, y - 1, w - 10, 1)
+    }
+  })
+  // lightning: two bolts and a sky flash
+  const bolt = new Layer()
+  for (const [bx, len] of [[W * 0.28, 50], [W * 0.74, 40]]) {
+    let x = bx
+    for (let y = 0; y < len; y += 3) {
+      bolt.px(fill('#e8f0ff'), x, y, 1.2, 3)
+      x += (rand() - 0.5) * 6
+    }
+  }
+  sky.raw(`<g class="lt" opacity="0"><rect width="${W}" height="${HY}" fill="#c8d8ff" opacity="0.35"/>${bolt.svg()}</g>`)
+  // the drum kit on its riser
+  const cx = W / 2
+  stage.px(fill('#101016'), 0, HY, W, H - HY)
+  stage.px(fill('#2a2a34'), 0, HY, W, 0.6)
+  stage.px(fill('#16161e'), cx - 18, HY - 8, 36, 8)
+  disc(stage, cx, HY - 13, 6, fill('#1a1a24'))
+  disc(stage, cx, HY - 13, 4.5, fill('#d8d8e0', 0.7))
+  for (const [dx, dy, r] of [[-9, -17, 2.5], [9, -17, 2.5], [-14, -12, 3], [14, -12, 3]]) disc(stage, cx + dx, HY + dy, r, fill('#1a1a24'))
+  for (const dx of [-20, 13]) stage.px(fill('#d8b040', 0.85), cx + dx, HY - 24, 7, 0.6)
+  // walls of amps on both sides
+  const stacks = isTall ? [[2, 3], [W - 22, 3]] : [[4, 4], [26, 3], [W - 46, 3], [W - 24, 4]]
+  for (const [x, n] of stacks) {
+    for (let k = 0; k < n; k++) cabinet(stage, x, HY - 12 * (k + 1), 20, 11.5)
+    stage.px(fill('#16161c'), x, HY - 12 * n - 6, 20, 6)
+    for (let k = 0; k < 5; k++) disc(stage, x + 3 + k * 3.5, HY - 12 * n - 3, 0.8, fill('#c8c8d0'))
+    stage.px(`${fill('#ff3b3b')} class="blink"`, x + 18, HY - 12 * n - 4.5, 0.8, 0.8)
+  }
+  // fire jets along the front of the stage
+  for (const [fx, k] of [[0.3, 0], [0.42, 1], [0.58, 1], [0.7, 0]]) {
+    stage.px(fill('#2a2a34'), W * fx - 1.5, HY - 1, 3, 1)
+    flame(fire, W * fx, HY - 1, isTall ? 26 : 30, k ? 'fj2' : 'fj')
+  }
+  bg.raw(`<ellipse cx="${cx}" cy="${HY}" rx="${W * 0.35}" ry="30" fill="url(#fireGlow)" class="pu"/>`)
+  crowd(front, rand, W, H - (isTall ? 24 : 20), H, '#1a1a24', ['#ffb020'])
+  const extra = radial('fireGlow', '#ff7a1a', 0.35)
+  return { W, H, defs: extra, body: svgOf(bg, sky, stage, fire) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(front) }
+}
+
+// ---- Stadium Rock: an open-air stadium at sunset
+function stadiumRock(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 8801 : 8802)
+  const HY = Math.round(H * (isTall ? 0.62 : 0.55))
+  const bg = new Layer()
+  const stands = new Layer()
+  const rig = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer()
+  const air = new Layer()
+  bg.px(fill('#2a1a50'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#2a1a50'], [0.5, '#7a2a6a'], [0.8, '#ff7a4a'], [1, '#ffc46b']])
+  disc(bg, W * (isTall ? 0.2 : 0.14), HY - 8, isTall ? 10 : 13, fill('#ffe39a'))
+  moving(bg, 'fy', a => {
+    for (const [bx, by] of isTall ? [[120, 40], [130, 36]] : [[220, 30], [230, 26], [244, 34]]) {
+      a.px(fill('#3a1a3a'), bx, by, 1.5, 0.6)
+      a.px(fill('#3a1a3a'), bx + 1.5, by + 0.6, 1, 0.6)
+      a.px(fill('#3a1a3a'), bx + 2.5, by, 1.5, 0.6)
+    }
+  })
+  // the stands, curving round both sides
+  for (let r = 0; r < 7; r++) {
+    for (let x = 0; x < W; x += 2) {
+      const t = Math.abs(x - W / 2) / (W / 2)
+      const y = HY - 4 + r * 4 - t * t * (isTall ? 26 : 34)
+      stands.px(fill(r % 2 ? '#24163a' : '#2c1c44'), x, y, 2, 4)
+      if (rand() < 0.5) stands.px(fill(['#ffd27a', '#ff8fb0', '#ffffff', '#9ff0ff'][Math.floor(rand() * 4)], op1(0.35 + rand() * 0.4)), x + 0.5, y + 1, 0.8, 1)
+    }
+  }
+  // the stage rig: a truss roof, lights, two screens
+  const cx = W / 2
+  const rw = isTall ? 100 : 130
+  const top = HY - (isTall ? 34 : 40)
+  rig.px(fill('#0c0814'), cx - rw / 2, top, rw, HY + 12 - top)
+  for (let x = cx - rw / 2; x < cx + rw / 2; x += 6) {
+    rig.raw(`<path d="M${x} ${top - 6}L${x + 3} ${top}L${x + 6} ${top - 6}" stroke="#4a4458" stroke-width="0.5" fill="none"/>`)
+  }
+  rig.px(fill('#4a4458'), cx - rw / 2 - 2, top - 7, rw + 4, 1)
+  rig.px(fill('#4a4458'), cx - rw / 2 - 2, top, rw + 4, 1)
+  for (let x = cx - rw / 2 + 4; x < cx + rw / 2; x += 8) {
+    glow.px(`${fill(['#ffd27a', '#ff3fa8', '#38e8ff'][Math.floor(x) % 3])} class="tw${1 + (Math.floor(x) % 3)}"`, x, top + 1.5, 2, 1.2)
+  }
+  for (const dx of [-rw / 2 - 26, rw / 2 + 4]) {
+    const x = cx + dx
+    rig.px(fill('#0c0814'), x, top + 4, 22, 16)
+    glow.px(fill('#ff7a4a', 0.5), x + 1, top + 5, 20, 14)
+    eqBars(glow, x + 2, top + 18, 6, 2, 1.2, 10, ['#ffd27a', '#ff3fa8'])
+  }
+  // a guitarist and a drummer, in silhouette against the stage light
+  bg.raw(`<ellipse cx="${cx}" cy="${HY + 6}" rx="${rw * 0.5}" ry="26" fill="url(#stageLight)"/>`)
+  rig.px(fill('#1a1424'), cx - rw / 2, HY + 6, rw, 6)
+  glow.px(fill('#ffd27a', 0.8), cx - rw / 2, HY + 6, rw, 0.6)
+  rig.px(fill('#050308'), cx - 22, HY - 8, 3, 8)
+  rig.px(fill('#050308'), cx - 22.5, HY - 10.5, 4, 3)
+  rig.raw(`<path d="M${cx - 26} ${HY - 3}L${cx - 14} ${HY - 7}" stroke="#050308" stroke-width="1.4"/>`)
+  disc(rig, cx + 14, HY + 2, 4, fill('#050308'))
+  rig.px(fill('#050308'), cx + 12, HY - 6, 3, 6)
+  // the crowd on the field, confetti in the air
+  crowd(front, rand, W, H - (isTall ? 26 : 20), H, '#1e1230', ['#ffd27a'])
+  for (let i = 0; i < (isTall ? 50 : 80); i++) {
+    air.px(`${fill(['#ff3fa8', '#ffd23f', '#38e8ff', '#ffffff', '#3dff8a'][i % 5], 0.85)} class="f${1 + (i % 2)}"`, Math.floor(rand() * W), Math.floor(rand() * HY), 1, 0.8)
+  }
+  const extra = radial('stageLight', '#ffd27a', 0.4)
+  return { W, H, defs: extra, scan: false, body: svgOf(bg, stands, rig, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(front, air) }
+}
+
+// ---- DJ Booth: decks, a mixer and an equalizer wall
+function djBooth(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 9901 : 9902)
+  const TY = Math.round(H * (isTall ? 0.68 : 0.62))
+  const bg = new Layer()
+  const wall = new Layer()
+  const booth = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  bg.px(fill('#08060e'), 0, 0, W, H)
+  band(bg, W, 0, TY, [[0, '#08060e'], [1, '#160c24']])
+  // the equalizer wall behind
+  const cols = isTall ? 18 : 32
+  const bw = W / cols
+  const colors = ['#ff3fa8', '#9b4dff', '#38e8ff', '#3dff8a', '#ffd23f']
+  let bars = ''
+  for (let k = 0; k < cols; k++) {
+    const h = TY * (0.2 + 0.25 * Math.abs(Math.sin(k * 0.55)) + rand() * 0.1)
+    bars += `<rect class="eq${1 + (k % 4)}" x="${num(k * bw + 1)}" y="${num(TY - 6 - h)}" width="${num(bw - 2)}" height="${num(h)}" fill="${colors[Math.floor((k / cols) * colors.length)]}" opacity="0.32"/>`
+  }
+  wall.raw(bars)
+  lasers(wall, W / 2, TY - 4, '#ff3fa8', 3, W * 0.7, 0.35, 'ls1')
+  lasers(wall, W / 2, TY - 4, '#38e8ff', 3, W * 0.7, 0.35, 'ls2')
+  // the booth
+  booth.px(fill('#1a1624'), 0, TY, W, 4)
+  booth.px(fill('#0e0c16'), 0, TY + 4, W, H - TY - 4)
+  glow.px(fill('#ff3fa8'), 0, TY + 4, W, 0.6)
+  const s = isTall ? 0.62 : 1
+  const deckW = 44 * s
+  const mixW = 30 * s
+  const total = deckW * 2 + mixW + 8 * s
+  const x0 = (W - total) / 2
+  const y0 = TY - 1 - 34 * s
+  for (const [k, x] of [[0, x0], [1, x0 + deckW + mixW + 8 * s]]) {
+    booth.px(fill('#22202c'), x, y0, deckW, 34 * s)
+    booth.px(fill('#34303e'), x, y0, deckW, 0.6)
+    const pcx = x + 20 * s
+    const pcy = y0 + 17 * s
+    const platter = new Layer()
+    disc(platter, pcx, pcy, 14 * s, fill('#0a0a10'))
+    disc(platter, pcx, pcy, 11 * s, fill('#14141c'))
+    disc(platter, pcx, pcy, 4 * s, fill(k ? '#38e8ff' : '#ff3fa8'))
+    platter.px(fill('#f4f4ff'), pcx - 0.3, pcy - 13 * s, 0.6, 6 * s)
+    booth.raw(`<g class="sp" ${rot(pcx, pcy)}>${platter.svg()}</g>`)
+    booth.px(fill('#3a3644'), x + 38 * s, y0 + 6 * s, 2 * s, 22 * s)
+    booth.px(fill('#c8c8d0'), x + 37 * s, y0 + (k ? 18 : 12) * s, 4 * s, 2 * s)
+  }
+  // the mixer: VU meters, knobs, faders
+  const mx = x0 + deckW + 4 * s
+  booth.px(fill('#18161f'), mx, y0, mixW, 34 * s)
+  eqBars(glow, mx + 4 * s, y0 + 14 * s, 4, 2.6 * s, 1.6 * s, 10 * s, ['#3dff8a', '#3dff8a', '#ffd23f', '#ff3b3b'])
+  eqBars(glow, mx + 17 * s, y0 + 14 * s, 4, 2.6 * s, 1.6 * s, 10 * s, ['#3dff8a', '#ffd23f', '#3dff8a', '#ff3b3b'])
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) disc(booth, mx + 5 * s + c * 6.5 * s, y0 + (18 + r * 4.5) * s, 1.4 * s, fill('#5a5668'))
+  for (let c = 0; c < 4; c++) {
+    booth.px(fill('#0a0a10'), mx + 5 * s + c * 6.5 * s - 0.3, y0 + 26 * s, 0.6, 5 * s)
+    booth.px(fill('#e8e8f0'), mx + 5 * s + c * 6.5 * s - 1.2 * s, y0 + (27 + (c % 3)) * s, 2.4 * s, 1.2 * s)
+  }
+  // a laptop behind the mixer, its waveform scrolling
+  const lw = 30 * s
+  booth.px(fill('#2a2a34'), mx, y0 - 20 * s, lw, 18 * s)
+  booth.px(fill('#06060c'), mx + 1.5 * s, y0 - 18.5 * s, lw - 3 * s, 15 * s)
+  for (let x = 0; x < lw - 5 * s; x += 0.7) {
+    const a = (Math.abs(Math.sin(x * 0.9) * Math.sin(x * 0.21)) * 4 + 0.4) * s
+    glow.px(fill(x < (lw - 5 * s) / 2 ? '#ff3fa8' : '#38e8ff', 0.85), mx + 2.5 * s + x, y0 - 11 * s - a, 0.5, a * 2)
+  }
+  glow.px(`${fill('#ffffff')} class="blink"`, mx + lw / 2, y0 - 18 * s, 0.5, 15 * s)
+  // headphones on the booth
+  booth.raw(`<path d="M${num(x0 - 2)} ${TY}a6 6 0 0 1 12 0" fill="none" stroke="#5a5668" stroke-width="1.4"/>`)
+  return { W, H, body: svgOf(bg, wall) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(booth, glow) }
+}
+
+// ---- Main Stage: a festival, lasers, strobes and a drop
+function mainStage(W, H) {
+  const isTall = H > W
+  const rand = rng(isTall ? 1101 : 1102)
+  const HY = Math.round(H * (isTall ? 0.68 : 0.64))
+  const bg = new Layer()
+  const beams = new Layer()
+  const stage = new Layer()
+  const glow = new Layer('filter="url(#glow)"')
+  const front = new Layer()
+  const air = new Layer()
+  bg.px(fill('#020208'), 0, 0, W, H)
+  band(bg, W, 0, HY, [[0, '#020208'], [0.6, '#0c0620'], [1, '#2a0c3a']])
+  dots(bg, rand, [0, 0, W, HY * 0.5], isTall ? 30 : 50, ['#ffffff'], [0.2, 0.5], 0.3)
+  // the LED wall
+  const cx = W / 2
+  const lw = isTall ? 120 : 160
+  const lh = isTall ? 54 : 62
+  const ly = HY - lh - 10
+  stage.px(fill('#0a0614'), cx - lw / 2 - 3, ly - 3, lw + 6, lh + 13)
+  for (const [r, c, cls] of [[1, '#9b4dff', 'pu'], [0.7, '#ff3fa8', 'tw2'], [0.42, '#38e8ff', 'tw1']]) {
+    stage.raw(`<ellipse cx="${cx}" cy="${ly + lh / 2}" rx="${num((lw / 2) * r)}" ry="${num((lh / 2) * r)}" fill="none" stroke="${c}" stroke-width="2" opacity="0.7" class="${cls}"/>`)
+  }
+  const word = 'DROP'
+  const ws = isTall ? 2.6 : 3.2
+  text(glow, word, cx - textWidth(word, ws, FONT5) / 2, ly + lh / 2 - 2.5 * ws, ws, `${fill('#ffffff')} class="fl"`, FONT5)
+  eqBars(glow, cx - lw / 2 + 4, ly + lh - 2, isTall ? 22 : 30, 3, 2, 10, ['#ff3fa8', '#9b4dff', '#38e8ff', '#3dff8a'])
+  // side towers of lights
+  for (const x of [cx - lw / 2 - 18, cx + lw / 2 + 6]) {
+    stage.px(fill('#0a0614'), x, ly - 10, 12, HY - ly + 10)
+    for (let y = ly - 8; y < HY - 4; y += 4) glow.px(`${fill(['#ff3fa8', '#38e8ff', '#ffd23f'][Math.floor(y) % 3], 0.9)} class="tw${1 + (Math.floor(y) % 3)}"`, x + 2, y, 8, 1.5)
+  }
+  // lasers and strobes
+  lasers(beams, cx - lw / 2, ly - 4, '#3dff8a', 5, W * 0.8, 0.22, 'ls1')
+  lasers(beams, cx + lw / 2, ly - 4, '#ff3fa8', 5, W * 0.8, 0.22, 'ls2')
+  lasers(beams, cx, ly - 4, '#38e8ff', 3, W * 0.8, 0.3, 'ls2')
+  for (const [x, cls] of [[cx - lw / 2 + 6, 'ra'], [cx + lw / 2 - 8, 'rb'], [cx - 6, 'rb'], [cx + 4, 'ra']]) glow.px(`${fill('#ffffff')} class="${cls}"`, x, ly - 6, 3, 1.5)
+  // the deck in front, CO2 jets
+  stage.px(fill('#12101a'), 0, HY, W, H - HY)
+  glow.px(fill('#9b4dff'), 0, HY, W, 0.6)
+  stage.px(fill('#1a1426'), cx - 18, HY - 8, 36, 8)
+  glow.px(fill('#38e8ff', 0.9), cx - 18, HY - 8, 36, 0.5)
+  for (const [fx, k] of [[0.18, 0], [0.82, 1]]) {
+    const f = new Layer()
+    for (let r = 0; r < 30; r++) f.px(fill('#e8f0ff', op1(0.15 + (r / 30) * 0.4)), W * fx - (0.8 + r * 0.15), HY - 30 + r, 1.6 + r * 0.3, 1)
+    air.raw(`<g class="${k ? 'fj2' : 'fj'}">${f.svg()}</g>`)
+  }
+  // the crowd, glowsticks and confetti
+  crowd(front, rand, W, H - (isTall ? 30 : 24), H, '#1a1028', ['#3dff8a', '#ff3fa8', '#38e8ff', '#ffd23f'])
+  for (let i = 0; i < (isTall ? 50 : 80); i++) {
+    air.px(`${fill(['#ff3fa8', '#ffd23f', '#38e8ff', '#ffffff', '#3dff8a'][i % 5], 0.85)} class="f${1 + (i % 2)}"`, Math.floor(rand() * W), Math.floor(rand() * HY * 0.8), 1, 0.8)
+  }
+  return { W, H, body: svgOf(bg, beams, stage, glow) + `<rect width="${W}" height="${H}" fill="url(#calm)"/>` + svgOf(air, front) }
+}
+
 // ---------------------------------------------------------------- reactions
 // Drawn over any scene for a few seconds, as SVG pieces in the scene's own
 // coordinates: fireworks when Claude finishes a long task, a red alert when tests fail.
@@ -2670,16 +3260,24 @@ function alert(W, H) {
 // ---------------------------------------------------------------- output
 const BUILDERS = {
   'neon-miami': { label: 'Neon Miami', sky: C.bg, wide: () => wide(), tall: () => tall() },
+  'main-stage': { label: 'Main Stage', sky: '#020208', wide: () => mainStage(320, 180), tall: () => mainStage(180, 320) },
   'dune-sea': { label: 'Dune Sea', sky: '#2a1640', wide: () => desert(320, 180), tall: () => desert(180, 320) },
+  'light-grid': { label: 'Light Grid', sky: '#000308', wide: () => lightGrid(320, 180), tall: () => lightGrid(180, 320) },
   'deep-space': { label: 'Deep Space', sky: '#02010a', wide: () => space(320, 180), tall: () => space(180, 320) },
+  'dj-booth': { label: 'DJ Booth', sky: '#08060e', wide: () => djBooth(320, 180), tall: () => djBooth(180, 320) },
   'neon-rain': { label: 'Neon Rain', sky: RC.bg, wide: () => cyber(320, 180), tall: () => cyber(180, 320) },
+  'thunder-amps': { label: 'Thunder Amps', sky: '#05060c', wide: () => thunderAmps(320, 180), tall: () => thunderAmps(180, 320) },
   'grand-prix': { label: 'Grand Prix', sky: '#03040c', wide: () => race(320, 180), tall: () => race(180, 320) },
   'rooftop-cats': { label: 'Rooftop Cats', sky: '#07061a', wide: () => cats(320, 180), tall: () => cats(180, 320) },
+  'robot-disco': { label: 'Robot Disco', sky: '#06020e', wide: () => robotDisco(320, 180), tall: () => robotDisco(180, 320) },
   'blocklands-day': { label: 'Blocklands Day', sky: VD.bg, wide: () => voxel(320, 180, true), tall: () => voxel(180, 320, true) },
   'ai-lab': { label: 'AI Lab', sky: '#02050e', wide: () => ai(320, 180), tall: () => ai(180, 320) },
+  'static-stage': { label: 'Static Stage', sky: '#050506', wide: () => staticStage(320, 180), tall: () => staticStage(180, 320) },
   'black-hole': { label: 'Black Hole', sky: '#010103', wide: () => blackHole(320, 180), tall: () => blackHole(180, 320) },
+  'loop-room': { label: 'Loop Room', sky: '#120c1a', wide: () => loopRoom(320, 180), tall: () => loopRoom(180, 320) },
   'night-ops': { label: 'Night Ops', sky: OC.bg, wide: () => ops(320, 180), tall: () => ops(180, 320) },
   'dog-park': { label: 'Dog Park', sky: '#4f9fef', wide: () => dogs(320, 180), tall: () => dogs(180, 320) },
+  'stadium-rock': { label: 'Stadium Rock', sky: '#2a1a50', wide: () => stadiumRock(320, 180), tall: () => stadiumRock(180, 320) },
   'desert-lab': { label: 'Desert Lab', sky: '#04050d', wide: () => lab(320, 180), tall: () => lab(180, 320) },
   'gargoyle-city': { label: 'Gargoyle City', sky: '#04060c', wide: () => gothic(320, 180), tall: () => gothic(180, 320) },
   blocklands: { label: 'Blocklands Night', sky: VC.bg, wide: () => voxel(320, 180), tall: () => voxel(180, 320) },

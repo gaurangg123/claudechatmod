@@ -1,6 +1,6 @@
 {
   "name": "shell-party",
-  "version": "0.5.0",
-  "description": "Shell Party: 14 animated pixel-art scenes behind the chat, fireworks when a long task finishes, a red alert when tests fail, and neon colors and a skyline in the terminal.",
+  "version": "1.2.0",
+  "description": "Shell Party: 22 animated pixel-art scenes behind the chat, fireworks when a long task finishes, a red alert when tests fail, and neon colors and a skyline in the terminal.",
   "types": "./types/index.d.ts"
 }

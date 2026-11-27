@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="screenshots/banner.png" alt="Shell Party: 14 animated pixel-art scenes behind your Claude Code chat" width="100%">
+<img src="screenshots/banner.png" alt="Shell Party: 22 animated pixel-art scenes behind your Claude Code chat" width="100%">
 
 # Shell Party for Claude Code 🎉
 
 **Animated pixel-art worlds behind your chat. Neon text. Fireworks when Claude finishes a big task.**
 
-[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-ff2d95?style=for-the-badge)](https://claude.com/claude-code) [![Scenes](https://img.shields.io/badge/scenes-14-00e5ff?style=for-the-badge)](#-scenes) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-9b4dff?style=for-the-badge)](LICENSE) [![Install](https://img.shields.io/badge/install-one%20command-ffd23f?style=for-the-badge)](#-install-in-one-command)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-ff2d95?style=for-the-badge)](https://claude.com/claude-code) [![Scenes](https://img.shields.io/badge/scenes-22-00e5ff?style=for-the-badge)](#-scenes) [![Release](https://img.shields.io/badge/release-v1.2.0-3dff8a?style=for-the-badge)](https://github.com/gaurangg123/claudechatmod/releases) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-9b4dff?style=for-the-badge)](LICENSE) [![Install](https://img.shields.io/badge/install-one%20command-ffd23f?style=for-the-badge)](#-install-in-one-command)
 
 [Install](#-install-in-one-command) • [Scenes](#-scenes) • [Commands](#-commands) • [Reactions](#-reactions) • [Where it works](#-where-it-works) • [Troubleshooting](#-troubleshooting) • [Make your own scene](#-make-your-own-scene)
 
@@ -18,8 +18,9 @@
 
 <img src="screenshots/demo.gif" alt="Shell Party demo: the chat over an animated neon city, then fireworks and a new scene" align="right" width="420">
 
-- **14 animated scenes** behind the conversation: neon cities, deserts, deep space, a black hole,
-  a night race, an AI lab, and cats and dogs. Cars drive, rain falls, stars twinkle.
+- **22 animated scenes** behind the conversation: festival stages, DJ booths, rock and metal
+  shows, a glowing grid world, neon cities, deserts, deep space, a night race, an AI lab, and cats
+  and dogs. Lasers sweep, decks spin, cars drive, rain falls.
 - **A slideshow**: a new scene fades in every minute (or pick one and keep it).
 - **Reactions**: fireworks when Claude finishes a long task, a red alert when your tests fail.
 - **Neon text colors** that stay readable on every scene.
@@ -74,8 +75,20 @@ Then pick the theme with `/theme` → **Shell Party**.
 
 ## 🎨 Scenes
 
-A new scene shows every minute, in the order below. Jump to any of them with
-`/party-shell scene <name>`. All of the art is original, drawn from code in [dev/build-scene.mjs](dev/build-scene.mjs).
+A new scene fades in every minute. Jump to any of them with `/party-shell scene <name>`. All of the art is original, drawn from code in [dev/build-scene.mjs](dev/build-scene.mjs).
+
+### 🎧 Music and parties
+
+| | |
+| :---: | :---: |
+| ![Main Stage](screenshots/main-stage.png) | ![DJ Booth](screenshots/dj-booth.png) |
+| **Main Stage** · `main-stage`<br>A festival: lasers, strobes, CO2 jets and a drop | **DJ Booth** · `dj-booth`<br>Spinning decks, a mixer, an equalizer wall |
+| ![Robot Disco](screenshots/robot-disco.png) | ![Loop Room](screenshots/loop-room.png) |
+| **Robot Disco** · `robot-disco`<br>A robot DJ, an LED pyramid, a disco ball | **Loop Room** · `loop-room`<br>A late-night bedroom studio, pads lighting up |
+| ![Thunder Amps](screenshots/thunder-amps.png) | ![Static Stage](screenshots/static-stage.png) |
+| **Thunder Amps** · `thunder-amps`<br>Lightning, walls of amps, fire jets | **Static Stage** · `static-stage`<br>A dark arena, a glitching screen, spotlights |
+| ![Stadium Rock](screenshots/stadium-rock.png) | |
+| **Stadium Rock** · `stadium-rock`<br>An open-air stadium at sunset, confetti in the air | |
 
 ### 🌆 Neon cities
 
@@ -111,10 +124,10 @@ A new scene shows every minute, in the order below. Jump to any of them with
 
 ### 🤖 Tech
 
-| |
-| :---: |
-| ![AI Lab](screenshots/ai-lab.png) |
-| **AI Lab** · `ai-lab`<br>Blinking server racks, a neural network lighting up, a model training |
+| | |
+| :---: | :---: |
+| ![AI Lab](screenshots/ai-lab.png) | ![Light Grid](screenshots/light-grid.png) |
+| **AI Lab** · `ai-lab`<br>Server racks, a neural network lighting up, a model training | **Light Grid** · `light-grid`<br>A glowing grid world, light-bikes racing |
 
 ### 🐾 Pets
 
@@ -269,7 +282,8 @@ Then pick another theme with `/theme`.
 
 ## 📄 License
 
-[GPL-3.0](LICENSE). All scenes are original pixel art made for this project.
+[GPL-3.0](LICENSE). All scenes are original pixel art made for this project, inspired by moods
+and genres; none uses a band's, film's or team's name, logo or characters.
 
-<sub>Shell Party was called Neon Miami before version 0.5.0. If you installed it under that name, run
+<sub>Shell Party was called Neon Miami before version 1.2.0. If you installed it under that name, run
 `claude plugin uninstall neon-miami@claudechatmod`, then install again with the command above.</sub>

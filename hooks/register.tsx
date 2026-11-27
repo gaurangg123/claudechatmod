@@ -64,6 +64,14 @@ const ALT: { readonly [K in SceneName]: string } = {
   'dog-park': 'Dog Park: a sunny park with dogs chasing a ball, jumping for a frisbee and napping under a tree',
   'desert-lab': 'Desert Lab: an old camper van under desert stars, glowing flasks on a lab bench and red mesas',
   'gargoyle-city': 'Gargoyle City: a gothic city in the rain with a searchlight on the clouds and a caped figure on a ledge',
+  'light-grid': 'Light Grid: a glowing grid world with outlined mountains and light-bikes racing with light trails',
+  'robot-disco': 'Robot Disco: a robot DJ at the decks under a disco ball, an LED pyramid and a light-up dance floor',
+  'loop-room': 'Loop Room: a late-night bedroom studio, sampler pads lighting up and ONE MORE LOOP on the wall',
+  'static-stage': 'Static Stage: a dark arena with a glitching static screen, a drum riser, decks and spotlights',
+  'thunder-amps': 'Thunder Amps: a metal stage in a storm with lightning, walls of amps, fire jets and a crowd',
+  'stadium-rock': 'Stadium Rock: an open-air stadium at sunset, a big stage rig, a band in silhouette and confetti',
+  'dj-booth': 'DJ Booth: spinning decks, a mixer with bouncing meters, a laptop waveform and an equalizer wall',
+  'main-stage': 'Main Stage: a festival stage with lasers, strobes, CO2 jets, DROP on the LED wall and a crowd',
 }
 
 function pick(list: readonly string[], seed: string): string {

@@ -67,8 +67,7 @@ test('desktop and mobile draw every scene as an animated Svg', async ($, on) => 
   mock.store(on)
   mock.clock(on)
   for (const scene of [
-    'neon-miami', 'dune-sea', 'deep-space', 'neon-rain', 'grand-prix', 'rooftop-cats', 'blocklands-day',
-    'ai-lab', 'black-hole', 'night-ops', 'dog-park', 'desert-lab', 'gargoyle-city', 'blocklands',
+    'neon-miami', 'main-stage', 'dune-sea', 'light-grid', 'deep-space', 'dj-booth', 'neon-rain', 'thunder-amps', 'grand-prix', 'rooftop-cats', 'robot-disco', 'blocklands-day', 'ai-lab', 'static-stage', 'black-hole', 'loop-room', 'night-ops', 'dog-park', 'stadium-rock', 'desert-lab', 'gargoyle-city', 'blocklands',
   ]) {
     for (const surface of ['desktop', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...backdrop, surface, props: { ...backdrop.props, scene } })
@@ -100,10 +99,10 @@ test('the slideshow moves to the next scene every minute, with a fade', async ($
   expect((await drawn($)).alt).toContain('Neon Miami')
   await clock.advance(35_000)
   const day = await drawn($)
-  expect(day.alt).toContain('Dune Sea')
+  expect(day.alt).toContain('Main Stage')
   expect(day.source).toContain('class="fi"')
   await clock.advance(60_000)
-  expect((await drawn($)).alt).toContain('Deep Space')
+  expect((await drawn($)).alt).toContain('Dune Sea')
 })
 
 test('fireworks show when a long task finishes, then go', async ($, on) => {
