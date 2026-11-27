@@ -28,6 +28,30 @@ own glass and text colors. The scenes animate in the app: cars drive, rain falls
 
 ## Install
 
+### One step (recommended)
+
+Needs [Claude Code](https://claude.com/claude-code) and `git`. The installer adds the plugin for
+your user and turns on the Neon Miami terminal colors, keeping your other settings (it saves a
+backup as `settings.json.before-neon-miami.bak`). Start a new Claude Code session afterwards and
+the theme is on.
+
+**Windows** (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.ps1 | iex
+```
+
+**macOS / Linux**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.sh | bash
+```
+
+Read [install.ps1](install.ps1) or [install.sh](install.sh) first if you like: each runs
+`claude plugin install` and sets `"theme"` in `~/.claude/settings.json`, nothing else.
+
+### By hand
+
 At the prompt of a Claude Code terminal session:
 
 ```
