@@ -106,9 +106,11 @@ class Layer {
 
 // Draws into layers of its own and adds them to L as one group, so a CSS
 // animation (the class) can move the whole thing: a car, a cloud, a helicopter.
+// No glow filter inside: a blur that moves is redrawn every frame, which
+// stutters on laptops.
 function moving(L, cls, draw) {
   const a = new Layer()
-  const g = new Layer('filter="url(#glow)"')
+  const g = new Layer()
   draw(a, g)
   L.raw(`<g class="${cls}">${a.svg()}${g.svg()}</g>`)
 }
@@ -716,10 +718,19 @@ const STYLE = `<style>
 .rb{animation:bl .24s steps(1,end) infinite .12s}
 @keyframes dr{from{transform:translateX(-360px)}to{transform:translateX(360px)}}
 @keyframes dl{from{transform:translateX(360px)}to{transform:translateX(-360px)}}
+.d1,.d2,.d3,.d4,.fy,.dt,.f1,.f2{will-change:transform}
 .d1{animation:dr 9s linear infinite}
 .d2{animation:dl 11s linear infinite -4s}
 .d3{animation:dl 14s linear infinite -9s}
 .d4{animation:dr 7s linear infinite -2s}
+@keyframes fi{from{opacity:1}to{opacity:0}}
+.fi{animation:fi 1.2s ease-out}
+@keyframes fw{0%{transform:scale(.1);opacity:0}12%{opacity:1}70%{opacity:1}100%{transform:scale(1);opacity:0}}
+.fw1{animation:fw 1.6s ease-out infinite}
+.fw2{animation:fw 1.6s ease-out infinite -.55s}
+.fw3{animation:fw 1.6s ease-out infinite -1.1s}
+@keyframes al{0%,100%{opacity:.6}50%{opacity:1}}
+.al{animation:al 1s ease-in-out infinite}
 @keyframes fa{from{transform:translateY(-12px)}to{transform:translateY(12px)}}
 .f1{animation:fa .7s linear infinite}
 .f2{animation:fa .9s linear infinite -.4s}
@@ -1356,7 +1367,7 @@ function voxel(W, H, day = false) {
   const extra =
     `<radialGradient id="moonGlow"><stop offset="0" stop-color="#dfe8ff" stop-opacity="0.22"/><stop offset="1" stop-color="#dfe8ff" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="sunDay"><stop offset="0" stop-color="#fff6b0" stop-opacity="0.6"/><stop offset="1" stop-color="#fff6b0" stop-opacity="0"/></radialGradient>` +
-    `<radialGradient id="calmDay" cx="0.5" cy="0.42" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="calmDay" cx="0.5" cy="0.36" r="0.55"><stop offset="0" stop-color="#0a1830" stop-opacity="0.5"/><stop offset="0.6" stop-color="#0a1830" stop-opacity="0.3"/><stop offset="1" stop-color="#0a1830" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="warmGlow"><stop offset="0" stop-color="${P.warm}" stop-opacity="0.3"/><stop offset="1" stop-color="${P.warm}" stop-opacity="0"/></radialGradient>` +
     `<pattern id="blk" width="${B}" height="${B}" patternUnits="userSpaceOnUse"><rect width="${B}" height="0.4" fill="#000" opacity="${line}"/>` +
     `<rect width="0.4" height="${B}" fill="#000" opacity="${line}"/><rect x="0.4" y="0.4" width="${B - 0.4}" height="0.4" fill="#fff" opacity="${day ? 0.18 : 0.07}"/></pattern>` +
@@ -1520,6 +1531,49 @@ function ops(W, H) {
   return { W, H, defs: extra, body: bg.svg() + art.svg() + glow.svg() + calm + hud.svg() + hudGlow.svg() }
 }
 
+// ---------------------------------------------------------------- reactions
+// Drawn over any scene for a few seconds, as SVG pieces in the scene's own
+// coordinates: fireworks when Claude finishes a long task, a red alert when tests fail.
+
+function fireworks(W, H) {
+  const L = new Layer()
+  const spots = [[0.16, 0.22, C.pink, 'fw1'], [0.84, 0.18, C.cyan, 'fw2'], [0.72, 0.4, C.yellow, 'fw3'], [0.28, 0.42, C.teal, 'fw2']]
+  for (const [fx, fy, color, cls] of spots) {
+    const cx = Math.round(W * fx)
+    const cy = Math.round(H * fy)
+    const r = Math.round(Math.min(W, H) * 0.12)
+    let rays = ''
+    for (let k = 0; k < 14; k++) {
+      const a = (k / 14) * Math.PI * 2
+      for (const t of [0.45, 0.7, 1]) {
+        const x = cx + Math.cos(a) * r * t
+        const y = cy + Math.sin(a) * r * t
+        rays += `<rect x="${num(x - 0.6)}" y="${num(y - 0.6)}" width="1.2" height="1.2" fill="${t === 1 ? C.white : color}"/>`
+      }
+    }
+    L.raw(`<g class="${cls}" style="transform-origin:${cx}px ${cy}px">${rays}</g>`)
+  }
+  return L.svg()
+}
+
+function alert(W, H) {
+  const L = new Layer()
+  const red = '#ff3b3b'
+  const t = 2
+  L.raw(
+    `<radialGradient id="alertEdge" cx="0.5" cy="0.5" r="0.75"><stop offset="0.55" stop-color="${red}" stop-opacity="0"/><stop offset="1" stop-color="${red}" stop-opacity="0.45"/></radialGradient>` +
+      `<g class="al"><rect width="${W}" height="${H}" fill="url(#alertEdge)"/>` +
+      `<rect width="${W}" height="${t}" fill="${red}"/><rect y="${H - t}" width="${W}" height="${t}" fill="${red}"/>` +
+      `<rect width="${t}" height="${H}" fill="${red}"/><rect x="${W - t}" width="${t}" height="${H}" fill="${red}"/></g>`,
+  )
+  const word = 'TESTS FAILED'
+  const s = 0.8
+  const x = W - 8 - textWidth(word, s)
+  L.px(fill('#000', 0.7), x - 2, H - 16, textWidth(word, s) + 4, 8)
+  text(L, word, x, H - 14, s, `${fill(red)} class="al"`)
+  return L.svg()
+}
+
 // ---------------------------------------------------------------- output
 const BUILDERS = {
   'neon-miami': { label: 'Neon Miami', sky: C.bg, wide: () => wide(), tall: () => tall() },
@@ -1550,6 +1604,13 @@ export const SCENE_NAMES = ${JSON.stringify(names)} as const
 export type SceneName = (typeof SCENE_NAMES)[number]
 
 export const SCENES: { readonly [K in SceneName]: { readonly label: string; readonly sky: string; readonly wide: string; readonly tall: string } } = ${JSON.stringify(out, null, 1)}
+
+// Pieces drawn over a scene for a few seconds: placed just before its </svg>.
+export const REACTIONS = ${JSON.stringify({
+  party: { wide: fireworks(320, 180), tall: fireworks(180, 320) },
+  alert: { wide: alert(320, 180), tall: alert(180, 320) },
+}, null, 1)} as const
+export type Reaction = keyof typeof REACTIONS
 `
 writeFileSync(join(root, 'hooks', 'scene.ts'), ts)
 if (process.argv.includes('--preview')) {

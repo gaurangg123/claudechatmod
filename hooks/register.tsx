@@ -1,8 +1,8 @@
 import type { EngineInterface, Register, ThemeColors, ThemeResult, Timer } from 'claude-code'
 
-import type { NeonMiamiPrefs } from '../types'
+import type { NeonMiamiPrefs, NeonMiamiView } from '../types'
 import { bandCells } from './band'
-import { SCENE_NAMES, SCENES, STYLE, type SceneName } from './scene'
+import { REACTIONS, SCENE_NAMES, SCENES, STYLE, type Reaction, type SceneName } from './scene'
 
 // v2 holds the slideshow's clock offset and the 1-minute default; v1 choices carry over once.
 const STORE_KEY = 'prefs-v2'
@@ -15,12 +15,27 @@ const DEFAULTS: NeonMiamiPrefs = {
   slideshow: true,
   minutes: 1,
   offset: 0,
+  reactions: true,
 }
-// How often the slideshow looks at the clock. A scene changes only on its minute.
-const TICK_MS = 5_000
+// How often the slideshow and reactions look at the clock.
+const TICK_MS = 2_000
 
-// The person's choices for this session; drawings that read it redraw when it changes.
+// The one backdrop name the app holds for the whole session. The look (glass,
+// text colors) is sent once; the slideshow changes only the picture drawn for
+// it, so a new scene fades in without the rest of the app redrawing.
+const BACKDROP = 'neon'
+
+// Reactions: fireworks when a task of 20 s or more finishes, a red alert when a
+// test command fails.
+const PARTY_MS = 7_000
+const ALERT_MS = 9_000
+const LONG_TASK_MS = 20_000
+const TEST_COMMAND = /\b(tests?|jest|vitest|pytest|mocha|rspec|phpunit|go test|cargo test|dotnet test|spec)\b/i
+
+// The person's choices, and what the backdrop shows now; drawings that read them
+// redraw when they change.
 const PREFS = { plugin: 'neon-miami', key: 'prefs' } as const
+const VIEW = { plugin: 'neon-miami', key: 'view' } as const
 
 // The words the terminal's spinner and turn footer use while the theme is on.
 const VERBS = [
@@ -42,15 +57,6 @@ const ALT: { readonly [K in SceneName]: string } = {
   blocklands: 'Blocklands Night: a blocky voxel world at night with a full moon, blossom trees, a lit cabin and a floating island',
 }
 
-// Each scene's accent for the app's text palette: bright enough to read on the dark panels.
-const ACCENT: { readonly [K in SceneName]: `#${string}` } = {
-  'neon-miami': '#ff5fb3',
-  'blocklands-day': '#7ee36b',
-  'neon-rain': '#3ee9ff',
-  'night-ops': '#4dff9a',
-  blocklands: '#5cf0c4',
-}
-
 function pick(list: readonly string[], seed: string): string {
   let h = 2166136261
   for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619)
@@ -68,7 +74,7 @@ const slot = (now: number, minutes: number) => Math.floor(now / (minutes * 60_00
 // The scene on show: with the slideshow on, it follows the wall clock, so
 // every window and every copy of the theme agrees on it.
 function sceneAt(p: NeonMiamiPrefs, now: number): SceneName {
-  if (!p.slideshow) return isScene(p.scene) ? p.scene : DEFAULTS.scene as SceneName
+  if (!p.slideshow) return isScene(p.scene) ? p.scene : 'neon-miami'
   return SCENE_NAMES[mod(slot(now, p.minutes) + p.offset, SCENE_NAMES.length)] ?? 'neon-miami'
 }
 
@@ -79,20 +85,22 @@ const offsetFor = (scene: SceneName, now: number, minutes: number) =>
 function normalize(value: unknown): NeonMiamiPrefs {
   const v = typeof value === 'object' && value !== null ? (value as Partial<NeonMiamiPrefs>) : {}
   const num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x) : d)
+  const bool = (x: unknown, d: boolean) => (typeof x === 'boolean' ? x : d)
   return {
-    backdrop: typeof v.backdrop === 'boolean' ? v.backdrop : DEFAULTS.backdrop,
-    band: typeof v.band === 'boolean' ? v.band : DEFAULTS.band,
-    motion: typeof v.motion === 'boolean' ? v.motion : DEFAULTS.motion,
+    backdrop: bool(v.backdrop, DEFAULTS.backdrop),
+    band: bool(v.band, DEFAULTS.band),
+    motion: bool(v.motion, DEFAULTS.motion),
     scene: isScene(v.scene) ? v.scene : DEFAULTS.scene,
-    slideshow: typeof v.slideshow === 'boolean' ? v.slideshow : DEFAULTS.slideshow,
+    slideshow: bool(v.slideshow, DEFAULTS.slideshow),
     minutes: Math.max(1, Math.min(240, num(v.minutes, DEFAULTS.minutes))),
     offset: mod(num(v.offset, 0), SCENE_NAMES.length),
+    reactions: bool(v.reactions, DEFAULTS.reactions),
   }
 }
 
-// A copy kept in the module, for engines without $.state (older terminal
-// builds). session.start fills it from the store on every load.
-let held: NeonMiamiPrefs = DEFAULTS
+// Copies kept in the module, for engines without $.state (older terminal builds).
+let heldPrefs: NeonMiamiPrefs = DEFAULTS
+let heldView: NeonMiamiView | undefined
 
 async function readPrefs($: EngineInterface): Promise<NeonMiamiPrefs> {
   try {
@@ -101,15 +109,26 @@ async function readPrefs($: EngineInterface): Promise<NeonMiamiPrefs> {
   } catch {
     // no $.state here: the module's copy stands
   }
-  return held
+  return heldPrefs
 }
 
-async function writePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
-  held = p
+async function readView($: EngineInterface): Promise<NeonMiamiView | undefined> {
   try {
-    await $.state.set(PREFS, p)
+    const { value } = await $.state.get(VIEW)
+    if (value !== undefined) return value
   } catch {
-    // no $.state here: ask for a redraw so the band follows the change
+    // no $.state here: the module's copy stands
+  }
+  return heldView
+}
+
+// Writes go to $.state, which redraws the drawings that read the value; with
+// no $.state, the module's copy and a redraw request stand in.
+async function writeState($: EngineInterface, write: () => Promise<unknown>, hold: () => void): Promise<void> {
+  hold()
+  try {
+    await write()
+  } catch {
     try {
       $.ui.invalidate('ui.render')
     } catch {
@@ -117,6 +136,11 @@ async function writePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> 
     }
   }
 }
+
+const writePrefs = ($: EngineInterface, p: NeonMiamiPrefs) =>
+  writeState($, () => $.state.set(PREFS, p), () => (heldPrefs = p))
+const writeView = ($: EngineInterface, v: NeonMiamiView) =>
+  writeState($, () => $.state.set(VIEW, v), () => (heldView = v))
 
 // Saves the choices for this session and the next ones.
 async function savePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
@@ -128,35 +152,36 @@ async function savePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
   }
 }
 
-// A readable text palette for the app, tinted with the scene's accent. The
-// app keeps its own panels (the backdrop shows through them); this changes the
-// text, links, accents and borders. Names the app does not use paint nothing.
-function palette(scene: SceneName): ThemeColors {
-  const accent = ACCENT[scene]
-  return {
-    v: 1,
-    id: `neon-miami-${scene}`,
-    label: `Neon Miami: ${SCENES[scene].label}`,
-    inputs: {
-      dark: {
-        'text-primary': '#f3efff',
-        'text-secondary': '#d0c8ec',
-        'text-muted': '#a69dc8',
-        'text-accent': accent,
-        'text-link-color': accent,
-        'fill-accent': accent,
-        'on-accent': '#0a0612',
-        'border-accent': accent,
-        border: '#3d2f60',
-        'border-strong': '#5a468e',
-        'bg-user-message': '#25173f',
-        'text-success': '#62ffb4',
-        'text-warning': '#ffd45f',
-        'text-danger': '#ff6f8f',
-      },
+// One readable text palette for every scene, sent once with the backdrop: light
+// text, a soft neon accent that sits well on all five scenes.
+const ACCENT = '#ff7ac6'
+const PALETTE: ThemeColors = {
+  v: 1,
+  id: 'neon-miami',
+  label: 'Neon Miami',
+  inputs: {
+    dark: {
+      'text-primary': '#f6f2ff',
+      'text-secondary': '#d6cff0',
+      'text-muted': '#b0a8d2',
+      'text-accent': ACCENT,
+      'text-link-color': ACCENT,
+      'fill-accent': ACCENT,
+      'on-accent': '#0a0612',
+      'border-accent': ACCENT,
+      border: '#3d2f60',
+      'border-strong': '#5a468e',
+      'bg-user-message': '#25173f',
+      'text-success': '#62ffb4',
+      'text-warning': '#ffd45f',
+      'text-danger': '#ff6f8f',
     },
-  }
+  },
 }
+
+// Glass with no blur: a blur over a moving scene is redrawn every frame, which
+// stutters on laptops. The dark tint alone keeps the text readable.
+const GLASS = { blur: 0, tint: '#07050c', opacity: 0.5 }
 
 // What the app answered when the theme asked for the backdrop, and the first
 // time a surface asked to draw one: /neon shows it, and last-run.json keeps it.
@@ -175,46 +200,60 @@ async function saveReport($: EngineInterface): Promise<void> {
   }
 }
 
-// The scene this copy of the module last asked the app for.
-let shown: SceneName | undefined
-
-// Sets the backdrop and text palette for `scene`, or clears them when the
+// Sends the look once (backdrop, glass, text colors), or clears it when the
 // person turned the backdrop off. An engine without backdrops rejects, and the
 // caller carries on.
-async function applyBackdrop($: EngineInterface, p: NeonMiamiPrefs, scene: SceneName, isPersonAsking: boolean): Promise<string> {
-  if (p.backdrop) {
-    let result: ThemeResult
-    try {
-      result = await $.theme.set({
-        backdrop: { scene, glass: { blur: 3, tint: '#07050c', opacity: 0.4 } },
-        overrideColorScheme: 'dark',
-        colors: palette(scene),
-      })
-    } catch (err) {
-      report.set = `the engine refused the theme: ${err instanceof Error ? err.message : String(err)}`
-      await saveReport($)
-      throw err
-    }
-    shown = scene
-    report.set = describe(result)
-    report.shown = scene
-    report.changes++
-    await saveReport($)
-    return result.isDrawn ? `Now showing ${SCENES[scene].label}.` : `${SCENES[scene].label} set; ${report.set}.`
+async function applyLook($: EngineInterface, p: NeonMiamiPrefs, isPersonAsking: boolean): Promise<string> {
+  if (!p.backdrop) {
+    if (isPersonAsking) await $.theme.clear()
+    return 'Backdrop off.'
   }
-  shown = undefined
-  // Clearing removes whichever theme stands, so only do it when the person asked.
-  if (isPersonAsking) await $.theme.clear()
-  return 'Backdrop off.'
+  let result: ThemeResult
+  try {
+    result = await $.theme.set({ backdrop: { scene: BACKDROP, glass: GLASS }, overrideColorScheme: 'dark', colors: PALETTE })
+  } catch (err) {
+    report.set = `the engine refused the theme: ${err instanceof Error ? err.message : String(err)}`
+    await saveReport($)
+    throw err
+  }
+  report.set = describe(result)
+  await saveReport($)
+  return result.isDrawn ? 'Backdrop on.' : `Backdrop set; ${report.set}.`
 }
 
-// Looks at the clock and switches the scene when its minute has come.
+// Looks at the clock: moves to the next scene when its minute has come, and
+// ends a reaction whose time is up.
 async function tick($: EngineInterface): Promise<void> {
   report.ticks++
   const p = await readPrefs($)
   if (!p.backdrop) return
-  const scene = sceneAt(p, await $.clock.now())
-  if (scene !== shown) await applyBackdrop($, p, scene, false)
+  const now = await $.clock.now()
+  const v = await readView($)
+  const scene = sceneAt(p, now)
+  let next: NeonMiamiView | undefined
+  if (v === undefined || v.scene !== scene) {
+    next = { scene, fade: p.motion, reaction: v?.reaction, until: v?.until }
+  }
+  const base = next ?? v
+  if (base?.reaction !== undefined && (base.until ?? 0) <= now) {
+    next = { scene: base.scene, fade: next !== undefined && next.fade }
+  }
+  if (next === undefined) return
+  await writeView($, next)
+  if (next.scene !== v?.scene) {
+    report.changes++
+    report.shown = next.scene
+    await saveReport($)
+  }
+}
+
+// Draws a reaction over the scene for `ms`.
+async function react($: EngineInterface, reaction: Reaction, ms: number, isPersonAsking = false): Promise<void> {
+  const p = await readPrefs($)
+  if (!p.backdrop || (!p.reactions && !isPersonAsking)) return
+  const now = await $.clock.now()
+  const v = await readView($)
+  await writeView($, { scene: v?.scene ?? sceneAt(p, now), reaction, until: now + ms, fade: false })
 }
 
 // One clock per loaded copy of the module; a reload ends the old one's by itself.
@@ -234,18 +273,19 @@ function startClock($: EngineInterface): void {
 }
 
 const label = (name: string) => (isScene(name) ? SCENES[name].label : name)
+const flag = (b: boolean) => (b ? 'on' : 'off')
 
 const HELP = [
-  'Neon Miami: a pixel-art backdrop with five scenes and a slideshow',
-  '  /neon                        show what is on',
-  `  /neon scene <name>           show one scene: ${SCENE_NAMES.join(', ')}`,
-  '  /neon next                   go to the next scene now',
-  '  /neon slideshow on|off       rotate through the scenes',
+  'Neon Miami: animated pixel-art scenes behind the chat',
+  '  /neon next                   show the next scene',
+  `  /neon scene <name>           pick one: ${SCENE_NAMES.join(', ')}`,
+  '  /neon slideshow on|off       change scenes on a timer',
   '  /neon every <minutes>        how long each scene stays (1 to 240)',
+  '  /neon motion on|off          moving cars, rain, clouds and lights',
+  '  /neon reactions on|off       fireworks when a long task ends, an alert when tests fail',
+  '  /neon party | alert          show a reaction now',
   '  /neon backdrop on|off        the scene behind the chat (desktop, mobile)',
   '  /neon band on|off            the pixel skyline above the prompt (terminal)',
-  '  /neon motion on|off          blinking lights, rain and radar in the scenes',
-  'Terminal colors: pick "Neon Miami" in /theme.',
 ].join('\n')
 
 export const register: Register = on => {
@@ -260,11 +300,12 @@ export const register: Register = on => {
     await savePrefs($, prefs)
     await $.command.register({
       name: 'neon',
-      description: 'Neon Miami theme: pick a scene, run the slideshow, turn the backdrop, band or motion on and off',
-      argumentHint: '[scene <name>|next|slideshow on|off|every <minutes>|backdrop|band|motion on|off]',
+      description: 'Neon Miami theme: pick a scene, run the slideshow, turn motion, reactions, the backdrop or band on and off',
+      argumentHint: '[next|scene <name>|slideshow on|off|every <minutes>|motion|reactions|backdrop|band on|off|party|alert]',
     })
+    await writeView($, { scene: sceneAt(prefs, await $.clock.now()), fade: prefs.motion })
     try {
-      await applyBackdrop($, prefs, sceneAt(prefs, await $.clock.now()), false)
+      await applyLook($, prefs, false)
     } catch {
       // No backdrop on this engine or surface; the rest of the theme stays on.
     }
@@ -273,28 +314,51 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // Fireworks when Claude finishes a long task.
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined && e.reason === 'answer' && e.durationMs >= LONG_TASK_MS) {
+      await react($, 'party', PARTY_MS).catch(() => undefined)
+    }
+    return result
+  })
+
+  // A red alert when a test command fails; a passing run clears it.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const result = await next(e)
+    const command = String((e.input as { command?: unknown }).command ?? '')
+    if (TEST_COMMAND.test(command)) {
+      const failed = 'isError' in result && result.isError === true
+      if (failed) await react($, 'alert', ALERT_MS).catch(() => undefined)
+      else {
+        const v = await readView($)
+        if (v?.reaction === 'alert') await writeView($, { scene: v.scene, fade: false })
+      }
+    }
+    return result
+  })
+
   on('command.run', { command: 'neon' }, async ($, e) => {
     const [part, arg] = e.args.trim().toLowerCase().split(/\s+/)
     const current = await readPrefs($)
     const now = await $.clock.now()
     const onShow = sceneAt(current, now)
-    const flag = (b: boolean) => (b ? 'on' : 'off')
-    const show = async (p: NeonMiamiPrefs) => {
+    const change = async (p: NeonMiamiPrefs, text: string) => {
       await savePrefs($, p)
-      try {
-        return { text: await applyBackdrop($, p, sceneAt(p, now), true) }
-      } catch {
-        return { text: 'This Claude Code build draws no backdrop; it shows in the desktop and mobile apps.' }
-      }
+      await tick($)
+      return { text }
     }
+    const toggle = (key: 'backdrop' | 'band' | 'motion' | 'reactions' | 'slideshow') =>
+      arg === undefined ? !current[key] : arg === 'on' || arg === 'true' || arg === 'yes'
 
     if (part === undefined || part === '' || part === 'help' || part === 'status') {
       return {
         text: [
           HELP,
           '',
-          `Now: ${label(onShow)}; slideshow ${flag(current.slideshow)}, every ${current.minutes} min; ` +
-            `backdrop ${flag(current.backdrop)}, band ${flag(current.band)}, motion ${flag(current.motion)}.`,
+          `Now: ${label(onShow)}; slideshow ${flag(current.slideshow)} (every ${current.minutes} min), ` +
+            `motion ${flag(current.motion)}, reactions ${flag(current.reactions)}, ` +
+            `backdrop ${flag(current.backdrop)}, band ${flag(current.band)}.`,
           `Backdrop check: ${report.set ?? 'no answer from the app yet'}; ${report.asked ?? 'no window has asked to draw it yet'}.`,
         ].join('\n'),
       }
@@ -302,54 +366,74 @@ export const register: Register = on => {
 
     if (part === 'next') {
       const target = SCENE_NAMES[mod(sceneIndex(onShow) + 1, SCENE_NAMES.length)] ?? 'neon-miami'
-      return show({ ...current, scene: target, offset: offsetFor(target, now, current.minutes) })
+      return change({ ...current, scene: target, offset: offsetFor(target, now, current.minutes) }, `Now showing ${label(target)}.`)
     }
 
     if (part === 'scene') {
       const wanted = SCENE_NAMES.find(n => n === arg || n.replace(/-/g, '') === arg?.replace(/-/g, ''))
       if (wanted === undefined) return { text: `Pick one of: ${SCENE_NAMES.join(', ')}.` }
-      return show({ ...current, scene: wanted, offset: offsetFor(wanted, now, current.minutes) })
+      return change({ ...current, scene: wanted, offset: offsetFor(wanted, now, current.minutes) }, `Now showing ${label(wanted)}.`)
     }
 
     if (part === 'every') {
       const minutes = Math.round(Number(arg))
       if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) return { text: 'Give the minutes between scenes, 1 to 240: /neon every 1' }
-      await savePrefs($, { ...current, minutes, offset: offsetFor(onShow, now, minutes) })
-      return { text: `Each scene now stays ${minutes} min.` }
+      return change({ ...current, minutes, offset: offsetFor(onShow, now, minutes) }, `Each scene now stays ${minutes} min.`)
     }
 
     if (part === 'slideshow') {
-      const value = arg === undefined ? !current.slideshow : arg === 'on' || arg === 'true' || arg === 'yes'
+      const value = toggle('slideshow')
       const p = { ...current, slideshow: value, scene: onShow, offset: offsetFor(onShow, now, current.minutes) }
-      await savePrefs($, p)
-      return { text: value ? `Slideshow on: a new scene every ${p.minutes} min.` : `Slideshow off: ${label(onShow)} stays.` }
+      return change(p, value ? `Slideshow on: a new scene every ${p.minutes} min.` : `Slideshow off: ${label(onShow)} stays.`)
     }
 
-    if (part !== 'backdrop' && part !== 'band' && part !== 'motion') return { text: HELP }
-    const value = arg === undefined ? !current[part] : arg === 'on' || arg === 'true' || arg === 'yes'
-    const nextPrefs: NeonMiamiPrefs = { ...current, [part]: value }
-    if (part === 'backdrop') return show(nextPrefs)
-    await savePrefs($, nextPrefs)
+    if (part === 'party' || part === 'alert') {
+      await react($, part, part === 'party' ? PARTY_MS : ALERT_MS, true)
+      return { text: part === 'party' ? 'Fireworks!' : 'Red alert (a test run failing looks like this).' }
+    }
 
-    return { text: `${part === 'band' ? 'Skyline band' : 'Motion'} ${value ? 'on' : 'off'}.` }
+    if (part === 'motion' || part === 'reactions' || part === 'band') {
+      const value = toggle(part)
+      const words = { motion: 'Motion', reactions: 'Reactions', band: 'Skyline band' }[part]
+      return change({ ...current, [part]: value }, `${words} ${flag(value)}.`)
+    }
+
+    if (part === 'backdrop') {
+      const p = { ...current, backdrop: toggle('backdrop') }
+      await savePrefs($, p)
+      try {
+        const text = await applyLook($, p, true)
+        if (p.backdrop) await tick($)
+        return { text }
+      } catch {
+        return { text: 'This Claude Code build draws no backdrop; it shows in the desktop and mobile apps.' }
+      }
+    }
+
+    return { text: HELP }
   })
 
-  // The scene behind the conversation: wide on desktop, tall on mobile.
+  // The scene behind the conversation: wide on desktop, tall on mobile. It reads
+  // the view, so a new scene or a reaction redraws the picture and nothing else.
   on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (report.asked === undefined) {
       report.asked = `the ${e.surface} app asked to draw scene "${e.props.scene}" from "${e.props.plugin}"`
       await saveReport($)
     }
-    const name = e.props.scene
-    if (!isScene(name) || e.surface === 'terminal') return next(e)
+    if (e.surface === 'terminal' || (e.props.scene !== BACKDROP && !isScene(e.props.scene))) return next(e)
     const p = await readPrefs($)
-    const { Svg } = $.ui.resolve(e)
+    const v = await readView($)
+    const name: SceneName = isScene(v?.scene) ? v.scene : isScene(e.props.scene) ? e.props.scene : 'neon-miami'
     const scene = SCENES[name]
-    const svg = e.surface === 'mobile' ? scene.tall : scene.wide
-    const source = p.motion ? svg : svg.replace(STYLE, '')
+    const layout = e.surface === 'mobile' ? 'tall' : 'wide'
+    let source: string = scene[layout]
+    if (!p.motion) source = source.replace(STYLE, '')
+    let over = ''
+    if (p.motion && v?.fade === true) over += `<rect width="100%" height="100%" fill="${scene.sky}" opacity="0" class="fi"/>`
+    if (v?.reaction !== undefined) over += REACTIONS[v.reaction][layout]
+    if (over !== '') source = source.replace(/<\/svg>$/, `${over}</svg>`)
+    const { Svg } = $.ui.resolve(e)
 
-    // The scene fills the whole window: its viewBox scales to the box and is
-    // cropped at the sides or top (slice), keeping the skyline on the bottom edge.
     // isInteractive draws it in a sandboxed frame, where its CSS animations run;
     // without it the app draws a still image.
     return <Svg source={source} alt={ALT[name]} isInteractive />

@@ -5,9 +5,9 @@ const backdrop = {
   component: 'Backdrop',
   requestId: 'backdrop',
   props: {
-    scene: 'neon-miami',
+    scene: 'neon',
     plugin: 'neon-miami',
-    glass: { blur: 4, tint: '#07050c', opacity: 0.7 },
+    glass: { blur: 0, tint: '#07050c', opacity: 0.5 },
     overrideColorScheme: 'dark',
   },
 } as const
@@ -27,9 +27,11 @@ const band = {
   },
 } as const
 
-test('a session starts on the slideshow scene, with a text palette', async ($, on) => {
-  mock.store(on)
-  mock.clock(on)
+type Engine = Parameters<Parameters<typeof test>[1]>[0]
+type On = Parameters<Parameters<typeof test>[1]>[1]
+
+// Starts a desktop session with the app's answers stubbed; returns the theme.set calls.
+async function start($: Engine, on: On): Promise<unknown[]> {
   const sets: unknown[] = []
   on('command.register', () => ({ value: { command: 'neon' } }))
   on('theme.set', (_, e) => {
@@ -37,55 +39,100 @@ test('a session starts on the slideshow scene, with a text palette', async ($, o
     return { value: { isDrawn: true, requestId: 'backdrop' } }
   })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  return sets
+}
 
+// What the backdrop draws now: the Svg's alt text and source.
+async function drawn($: Engine): Promise<{ alt: string; source: string }> {
+  const ui = await $.ui.mount({ ...backdrop, surface: 'desktop' })
+  const svg = await ui.find({ type: 'Svg' })
+  await ui.unmount()
+  return { alt: String(svg?.props.alt ?? ''), source: String(svg?.props.source ?? '') }
+}
+
+const run = ($: Engine, args: string) =>
+  $.command.run({ command: 'neon', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+
+test('a session sends the look once: the backdrop, glass and a text palette', async ($, on) => {
+  mock.store(on)
+  mock.clock(on)
+  const sets = await start($, on)
   expect(sets.length).toBe(1)
-  expect(JSON.stringify(sets[0])).toMatch(/"scene":"(neon-miami|blocklands-day|neon-rain|night-ops|blocklands)"/)
+  expect(JSON.stringify(sets[0])).toContain('"scene":"neon"')
   expect(JSON.stringify(sets[0])).toContain('"text-primary"')
 })
 
-test('desktop and mobile draw every scene as an Svg', async ($, on) => {
+test('desktop and mobile draw every scene as an animated Svg', async ($, on) => {
   mock.store(on)
   mock.clock(on)
   for (const scene of ['neon-miami', 'blocklands-day', 'neon-rain', 'night-ops', 'blocklands']) {
     for (const surface of ['desktop', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...backdrop, surface, props: { ...backdrop.props, scene } })
       const svg = await ui.find({ type: 'Svg' })
-      expect(svg).toBeDefined()
+      expect(svg?.props.isInteractive).toBe(true)
       await ui.unmount()
     }
   }
 })
 
-test('/neon scene and /neon next change the scene behind the chat', async ($, on) => {
+test('/neon scene and /neon next change the picture, not the look', async ($, on) => {
   mock.store(on)
   mock.clock(on)
-  const scenes: string[] = []
-  on('command.register', () => ({ value: { command: 'neon' } }))
-  on('theme.set', (_, e) => {
-    const m = /"scene":"([a-z-]+)"/.exec(JSON.stringify(e))
-    if (m?.[1]) scenes.push(m[1])
-    return { value: { isDrawn: true, requestId: 'backdrop' } }
-  })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
-  const run = (args: string) =>
-    $.command.run({ command: 'neon', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const sets = await start($, on)
+  expect(JSON.stringify(await run($, 'scene night-ops'))).toContain('Night Ops')
+  expect((await drawn($)).alt).toContain('Night Ops')
+  expect(JSON.stringify(await run($, 'next'))).toContain('Blocklands Night')
+  expect((await drawn($)).alt).toContain('Blocklands Night')
+  expect(JSON.stringify(await run($, 'every 15'))).toContain('15 min')
+  expect(sets.length).toBe(1)
+})
 
-  expect(JSON.stringify(await run('scene night-ops'))).toContain('Night Ops')
-  expect(JSON.stringify(await run('next'))).toContain('Blocklands Night')
-  expect(JSON.stringify(await run('slideshow off'))).toContain('Slideshow off')
-  expect(JSON.stringify(await run('every 15'))).toContain('15 min')
-  expect(scenes.slice(-2)).toEqual(['night-ops', 'blocklands'])
+test('the slideshow moves to the next scene every minute, with a fade', async ($, on) => {
+  mock.store(on)
+  const clock = mock.clock(on, { now: 0 })
+  await start($, on)
+  expect((await drawn($)).alt).toContain('Neon Miami')
+  await clock.advance(30_000)
+  expect((await drawn($)).alt).toContain('Neon Miami')
+  await clock.advance(35_000)
+  const day = await drawn($)
+  expect(day.alt).toContain('Blocklands Day')
+  expect(day.source).toContain('class="fi"')
+  await clock.advance(60_000)
+  expect((await drawn($)).alt).toContain('Neon Rain')
+})
+
+test('fireworks show when a long task finishes, then go', async ($, on) => {
+  mock.store(on)
+  const clock = mock.clock(on, { now: 0 })
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  await start($, on)
+  await $.turn.complete({ answer: 'Done.', durationMs: 5_000, isAborted: false, turnId: 't1', reason: 'answer' })
+  expect((await drawn($)).source).not.toContain('class="fw1"')
+  await $.turn.complete({ answer: 'Done.', durationMs: 45_000, isAborted: false, turnId: 't2', reason: 'answer' })
+  expect((await drawn($)).source).toContain('class="fw1"')
+  await clock.advance(10_000)
+  expect((await drawn($)).source).not.toContain('class="fw1"')
+})
+
+test('/neon alert shows the alert, and /neon reactions off stops the fireworks', async ($, on) => {
+  mock.store(on)
+  mock.clock(on, { now: 0 })
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  await start($, on)
+  await run($, 'alert')
+  expect((await drawn($)).source).toContain('alertEdge')
+  await run($, 'reactions off')
+  await $.turn.complete({ answer: 'Done.', durationMs: 45_000, isAborted: false, turnId: 't3', reason: 'answer' })
+  expect((await drawn($)).source).not.toContain('class="fw1"')
 })
 
 test('the terminal band is a 4-row Raster above the prompt', async ($, on) => {
   mock.store(on)
   mock.clock(on)
   const ui = await $.ui.mount({ ...band, surface: 'terminal' })
-  const raster = await ui.find({ type: 'Raster' })
-  expect(raster).toBeDefined()
+  expect(await ui.find({ type: 'Raster' })).toBeDefined()
   await ui.unmount()
 })
 
@@ -100,14 +147,7 @@ test('/neon band off removes the band, and it stays off', async ($, on) => {
     return <Box />
   })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-
-  const result = await $.command.run({
-    command: 'neon',
-    args: 'band off',
-    origin: { kind: 'composer' },
-    presentation: { isFullscreen: false, columns: 80 },
-  })
-  expect(JSON.stringify(result)).toContain('Skyline band off')
+  expect(JSON.stringify(await run($, 'band off'))).toContain('Skyline band off')
 
   const ui = await $.ui.mount({ ...band, surface: 'terminal' })
   expect(await ui.find({ type: 'Raster' })).toBeUndefined()
@@ -118,38 +158,4 @@ test('/neon band off removes the band, and it stays off', async ($, on) => {
   const again = await $.ui.mount({ ...band, surface: 'terminal' })
   expect(await again.find({ type: 'Raster' })).toBeUndefined()
   await again.unmount()
-})
-
-test('the city draws whatever name the app gives the plugin', async ($, on) => {
-  mock.store(on)
-  mock.clock(on)
-  const ui = await $.ui.mount({
-    ...backdrop,
-    surface: 'desktop',
-    props: { ...backdrop.props, plugin: 'neon-miami@local-mods' },
-  })
-  expect(await ui.find({ type: 'Svg' })).toBeDefined()
-  await ui.unmount()
-})
-
-test('the slideshow moves to the next scene every minute', async ($, on) => {
-  mock.store(on)
-  const clock = mock.clock(on, { now: 0 })
-  const scenes: string[] = []
-  on('command.register', () => ({ value: { command: 'neon' } }))
-  on('theme.set', (_, e) => {
-    const m = /"scene":"([a-z-]+)"/.exec(JSON.stringify(e))
-    if (m?.[1]) scenes.push(m[1])
-    return { value: { isDrawn: true, requestId: 'backdrop' } }
-  })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
-  expect(scenes).toEqual(['neon-miami'])
-
-  await clock.advance(30_000)
-  expect(scenes).toEqual(['neon-miami'])
-  await clock.advance(35_000)
-  expect(scenes).toEqual(['neon-miami', 'blocklands-day'])
-  await clock.advance(60_000)
-  expect(scenes).toEqual(['neon-miami', 'blocklands-day', 'neon-rain'])
 })

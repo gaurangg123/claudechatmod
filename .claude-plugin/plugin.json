@@ -1,6 +1,6 @@
 {
   "name": "neon-miami",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Neon Miami: a midnight synthwave theme with a pixel-art neon skyline behind the chat (desktop and mobile), a pixel skyline band and neon colors in the terminal.",
   "types": "./types/index.d.ts"
 }
