@@ -1,7 +1,7 @@
 {
   "name": "shell-party",
-  "version": "1.2.0",
-  "description": "Shell Party: 22 animated pixel-art scenes behind the chat, fireworks when a long task finishes, a red alert when tests fail, and neon colors and a skyline in the terminal.",
+  "version": "1.3.0",
+  "description": "Shell Party: 28 animated pixel-art scenes (dark and light) behind the chat, fireworks when a long task finishes, a red alert when tests fail, and neon colors and a skyline in the terminal.",
   "author": { "name": "gaurangg123", "url": "https://github.com/gaurangg123" },
   "homepage": "https://github.com/gaurangg123/claudechatmod",
   "repository": "https://github.com/gaurangg123/claudechatmod",

@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="screenshots/banner.png" alt="Shell Party: 22 animated pixel-art scenes behind your Claude Code chat" width="100%">
+<img src="screenshots/banner.png" alt="Shell Party: 28 animated pixel-art scenes behind your Claude Code chat" width="100%">
 
 # Shell Party for Claude Code 🎉
 
-**Animated pixel-art worlds behind your chat. Neon text. Fireworks when Claude finishes a big task.**
+**Animated pixel-art worlds behind your chat, in dark and light mode. Fireworks when Claude finishes a big task.**
 
-[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-ff2d95?style=for-the-badge)](https://claude.com/claude-code) [![Scenes](https://img.shields.io/badge/scenes-22-00e5ff?style=for-the-badge)](#-scenes) [![Release](https://img.shields.io/badge/release-v1.2.0-3dff8a?style=for-the-badge)](https://github.com/gaurangg123/claudechatmod/releases) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-9b4dff?style=for-the-badge)](LICENSE) [![Install](https://img.shields.io/badge/install-one%20command-ffd23f?style=for-the-badge)](#-install-in-one-command)
+[![CI](https://github.com/gaurangg123/claudechatmod/actions/workflows/ci.yml/badge.svg)](https://github.com/gaurangg123/claudechatmod/actions/workflows/ci.yml) [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-ff2d95?style=for-the-badge)](https://claude.com/claude-code) [![Scenes](https://img.shields.io/badge/scenes-28-00e5ff?style=for-the-badge)](#-scenes) [![Release](https://img.shields.io/badge/release-v1.3.0-3dff8a?style=for-the-badge)](https://github.com/gaurangg123/claudechatmod/releases) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-9b4dff?style=for-the-badge)](LICENSE) [![Install](https://img.shields.io/badge/install-one%20command-ffd23f?style=for-the-badge)](#-install-in-one-command)
 
 [Install](#-install-in-one-command) • [Scenes](#-scenes) • [Commands](#-commands) • [Reactions](#-reactions) • [Where it works](#-where-it-works) • [Troubleshooting](#-troubleshooting) • [Make your own scene](#-make-your-own-scene)
 
@@ -18,13 +18,16 @@
 
 <img src="screenshots/demo.gif" alt="Shell Party demo: the chat over an animated neon city, then fireworks and a new scene" align="right" width="420">
 
-- **22 animated scenes** behind the conversation: festival stages, DJ booths, rock and metal
-  shows, a glowing grid world, neon cities, deserts, deep space, a night race, an AI lab, and cats
-  and dogs. Lasers sweep, decks spin, cars drive, rain falls.
+- **28 animated scenes** behind the conversation: festival stages, DJ booths, rock and metal
+  shows, a glowing grid world, neon cities, deserts, deep space, a night race, an AI lab, cats and
+  dogs, and a set of bright scenes for light mode. Lasers sweep, decks spin, cars drive, rain falls.
+- **Dark and light mode**: `/party-shell mode light` swaps to bright scenes with dark text and
+  frosted white glass; `/party-shell mode dark` brings the night back.
 - **A slideshow**: a new scene fades in every minute (or pick one and keep it).
 - **Reactions**: fireworks when Claude finishes a long task, a red alert when your tests fail.
 - **Neon text colors** that stay readable on every scene.
-- **A pixel skyline** above the prompt when you use Claude Code in a terminal.
+- **A pixel skyline** above the prompt when you use Claude Code in a terminal, and an animated
+  **Windows Terminal profile** that the Windows installer sets up for you.
 - **One `/party-shell` command** to change all of it.
 
 <br clear="right">
@@ -46,17 +49,23 @@ curl -fsSL https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/inst
 ```
 
 Then **start a new Claude Code session**, or type `/reload-plugins` in an open one. That's it.
+Run the same command again any time to update; it's safe to repeat.
 
 <details>
 <summary><b>What does the installer do?</b></summary>
 
 1. Checks that `claude` and `git` are installed.
-2. Installs the plugin: `claude plugin install shell-party --marketplace gaurangg123/claudechatmod`.
-3. Sets `"theme": "custom:shell-party:shell-party"` in your Claude Code `settings.json`, after saving
-   a backup next to it (`settings.json.before-shell-party.bak`).
+2. Installs the plugin (or updates it, if it's already there):
+   `claude plugin install shell-party --marketplace gaurangg123/claudechatmod`.
+3. Sets `"theme": "custom:shell-party:shell-party"` in your Claude Code `settings.json`, keeping
+   every other setting.
+4. **Windows only:** if Windows Terminal is installed, adds a **Shell Party** color scheme and a
+   separate **Shell Party** profile with an animated background. Your other profiles aren't
+   touched. Set `SHELL_PARTY_NO_TERMINAL=1` before running it to skip this step.
 
-Nothing else on your computer changes. Read [install.ps1](install.ps1) or [install.sh](install.sh)
-before you run them.
+Every file it edits is backed up once, next to the file, as `*.before-shell-party.bak`. Nothing
+else on your computer changes. Read [install.ps1](install.ps1) or [install.sh](install.sh) before
+you run them. Both are tested on every change, on Windows (PowerShell 5.1 and 7), macOS and Linux.
 
 </details>
 
@@ -75,7 +84,23 @@ Then pick the theme with `/theme` → **Shell Party**.
 
 ## 🎨 Scenes
 
-A new scene fades in every minute. Jump to any of them with `/party-shell scene <name>`. All of the art is original, drawn from code in [dev/build-scene.mjs](dev/build-scene.mjs).
+A new scene fades in every minute. Dark mode (the default) rotates through the night scenes;
+`/party-shell mode light` rotates through the bright ones. Jump to any scene with
+`/party-shell scene <name>`, and the mode follows it. All of the art is original, drawn from code in
+[dev/build-scene.mjs](dev/build-scene.mjs).
+
+### ☀️ Light mode
+
+| | |
+| :---: | :---: |
+| ![Portal Garage](screenshots/portal-garage.png) | ![Shadow Office](screenshots/shadow-office.png) |
+| **Portal Garage** · `portal-garage`<br>A sunny garage lab, a swirling green portal, a saucer | **Shadow Office** · `shadow-office`<br>A conspiracy board, a TOP SECRET screen, a moon-landing set |
+| ![Crayon Town](screenshots/crayon-town.png) | ![Sky Lot](screenshots/sky-lot.png) |
+| **Crayon Town** · `crayon-town`<br>A sunny street, crayon doodles, a kindergarten bus | **Sky Lot** · `sky-lot`<br>Concrete pipes in a vacant lot, propeller toys flying |
+| ![Shape Games](screenshots/shape-games.png) | ![Exclusion Zone](screenshots/exclusion-zone.png) |
+| **Shape Games** · `shape-games`<br>Pastel stair mazes, shapes, a red light and a green light | **Exclusion Zone** · `exclusion-zone`<br>An abandoned Ferris wheel, a reactor stack, a dosimeter |
+
+Blocklands Day and Dog Park (below) are light-mode scenes too.
 
 ### 🎧 Music and parties
 
@@ -147,6 +172,7 @@ Type these in any Claude Code chat:
 | --- | --- |
 | `/party-shell` | Show what's on and the list of commands |
 | `/party-shell next` | Show the next scene |
+| `/party-shell mode light` \| `dark` | Bright scenes with dark text, or night scenes with light text |
 | `/party-shell scene <name>` | Pick a scene, for example `/party-shell scene dog-park` |
 | `/party-shell slideshow on` \| `off` | Change scenes on a timer, or keep the current one |
 | `/party-shell every <minutes>` | How long each scene stays, 1 to 240 minutes |
@@ -173,7 +199,8 @@ Turn them off with `/party-shell reactions off`.
 | Where | What you get |
 | --- | --- |
 | **Claude desktop app** (Code tab) | ✅ Animated scenes, slideshow, reactions, neon text colors |
-| **Terminal** (PowerShell, Windows Terminal, macOS Terminal, iTerm…) | ✅ Neon colors and the pixel skyline above the prompt |
+| **Windows Terminal** | ✅ A Shell Party profile with an animated background, neon colors and the skyline |
+| **Any terminal** (PowerShell, macOS Terminal, iTerm2, Linux) | ✅ Neon colors and the pixel skyline above the prompt |
 | **Cloud sessions** (claude.ai/code) | ⚠️ Only with the project settings below |
 | **Other AI tools** (Codex, Cursor…) | ❌ It's a Claude Code plugin, so it runs only in Claude Code |
 
@@ -202,6 +229,23 @@ project's `.claude/settings.json` and commit it:
 The scene is animated, and scrolling over moving art is heavy for some laptops. Type
 `/party-shell motion off`: the scene stays but stops moving, and scrolling is smooth again.
 `/party-shell motion on` brings the animation back.
+
+</details>
+
+<details>
+<summary><b>The text is hard to read on a bright scene</b></summary>
+
+Bright scenes belong to light mode, which uses dark text. Type `/party-shell mode light`, or
+`/party-shell mode dark` to go back to the night scenes.
+
+</details>
+
+<details>
+<summary><b>Where's the animated background in my terminal?</b></summary>
+
+On Windows, open the **Shell Party** profile from Windows Terminal's tab menu (the installer adds
+it), then run `claude`. Other terminals (macOS Terminal, iTerm2, the old PowerShell console) can't
+play an animated background; they get the colors and the skyline above the prompt.
 
 </details>
 
@@ -262,28 +306,37 @@ hooks/
   band.ts           the pixel skyline above the terminal prompt
   scene.ts          the list of scenes (generated)
   scenes/           one generated module per scene
-themes/             terminal colors
+themes/             Claude Code terminal colors
+terminal/           the animated Windows Terminal background
 types/              the plugin's state types
 dev/                the scene builder (build-scene.mjs) and the tests
 screenshots/        the pictures and the demo in this README
 install.ps1         one-line installer for Windows
 install.sh          one-line installer for macOS and Linux
+.github/workflows/  CI on Windows, macOS and Linux, and tagged releases
 ```
 
 </details>
 
 ## 🗑️ Uninstall
 
-```bash
-claude plugin uninstall shell-party@claudechatmod
+**Windows** (PowerShell): removes the plugin, the Windows Terminal profile and the background, and
+puts your previous theme back.
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.ps1))) -Uninstall
 ```
 
-Then pick another theme with `/theme`.
+**macOS / Linux**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.sh | bash -s -- --uninstall
+```
 
 ## 📄 License
 
 [GPL-3.0](LICENSE). All scenes are original pixel art made for this project, inspired by moods
 and genres; none uses a band's, film's or team's name, logo or characters.
 
-<sub>Shell Party was called Neon Miami before version 1.2.0. If you installed it under that name, run
-`claude plugin uninstall neon-miami@claudechatmod`, then install again with the command above.</sub>
+<sub>Shell Party was called Neon Miami before version 1.2.0. The installer removes the old
+`neon-miami` plugin for you.</sub>
