@@ -12,6 +12,20 @@ and uses no game's characters, logos, maps or interface:
 | **Blocklands Night** | The same world at night: full moon, glowing crystals, lanterns, fireflies, a lit cabin |
 | **Night Ops** | A night-vision base: watchtower searchlight, helicopter, radar scope, containers, a mission panel |
 
+## Screenshots
+
+Mockups of the Claude Code desktop app with each scene behind the chat, drawn with the theme's
+own glass and text colors. The scenes animate in the app: cars drive, rain falls, clouds drift.
+
+![Neon Miami](screenshots/neon-miami.png)
+
+| | |
+| --- | --- |
+| ![Blocklands Day](screenshots/blocklands-day.png) | ![Neon Rain](screenshots/neon-rain.png) |
+| **Blocklands Day** | **Neon Rain** |
+| ![Night Ops](screenshots/night-ops.png) | ![Blocklands Night](screenshots/blocklands.png) |
+| **Night Ops** | **Blocklands Night** |
+
 ## Install
 
 At the prompt of a Claude Code terminal session:
