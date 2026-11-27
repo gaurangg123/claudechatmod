@@ -6,6 +6,8 @@ tests fail.
 
 ![Neon Miami demo](screenshots/demo.gif)
 
+**[▶ Watch the full demo video (28 s)](screenshots/demo.mp4)**
+
 ## Install
 
 **Windows** (PowerShell):
@@ -41,8 +43,9 @@ A new scene appears every minute. Type `/neon` in Claude Code to change things:
 
 | | |
 | --- | --- |
-| ![Blocklands Day](screenshots/blocklands-day.png) **Blocklands Day** | ![Neon Rain](screenshots/neon-rain.png) **Neon Rain** |
-| ![Night Ops](screenshots/night-ops.png) **Night Ops** | ![Blocklands Night](screenshots/blocklands.png) **Blocklands Night** |
+| ![Neon Miami](screenshots/neon-miami.png) **Neon Miami** | ![Neon Rain](screenshots/neon-rain.png) **Neon Rain** |
+| ![Blocklands Day](screenshots/blocklands-day.png) **Blocklands Day** | ![Night Ops](screenshots/night-ops.png) **Night Ops** |
+| ![Blocklands Night](screenshots/blocklands.png) **Blocklands Night** | |
 
 All scenes are original art. The pictures and the demo are mockups of the desktop app, made from
 the theme's own scenes.
