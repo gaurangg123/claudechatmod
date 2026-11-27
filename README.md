@@ -1,9 +1,10 @@
 # Neon Miami for Claude Code
 
 Animated pixel-art scenes behind your Claude Code chat, with neon text colors and a neon skyline
-in the terminal.
+in the terminal. Fireworks go off when Claude finishes a long task, and a red alert flashes when
+tests fail.
 
-![Neon Miami](screenshots/neon-miami.png)
+![Neon Miami demo](screenshots/demo.gif)
 
 ## Install
 
@@ -33,6 +34,8 @@ A new scene appears every minute. Type `/neon` in Claude Code to change things:
 | `/neon scene neon-rain` | Pick a scene |
 | `/neon slideshow off` | Keep the current scene |
 | `/neon motion off` | Stop the animation |
+| `/neon party` | Show the fireworks now |
+| `/neon reactions off` | No fireworks or test alerts |
 
 ## Scenes
 
@@ -41,7 +44,8 @@ A new scene appears every minute. Type `/neon` in Claude Code to change things:
 | ![Blocklands Day](screenshots/blocklands-day.png) **Blocklands Day** | ![Neon Rain](screenshots/neon-rain.png) **Neon Rain** |
 | ![Night Ops](screenshots/night-ops.png) **Night Ops** | ![Blocklands Night](screenshots/blocklands.png) **Blocklands Night** |
 
-All scenes are original art. The pictures are mockups of the desktop app.
+All scenes are original art. The pictures and the demo are mockups of the desktop app, made from
+the theme's own scenes.
 
 ## Uninstall
 
