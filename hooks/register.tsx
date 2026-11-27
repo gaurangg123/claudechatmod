@@ -1,13 +1,13 @@
 import type { EngineInterface, Register, ThemeColors, ThemeResult, Timer } from 'claude-code'
 
-import type { NeonMiamiPrefs, NeonMiamiView } from '../types'
+import type { ShellPartyPrefs, ShellPartyView } from '../types'
 import { bandCells } from './band'
 import { REACTIONS, SCENE_NAMES, SCENES, STYLE, type Reaction, type SceneName } from './scene'
 
 // v2 holds the slideshow's clock offset and the 1-minute default; v1 choices carry over once.
 const STORE_KEY = 'prefs-v2'
 const OLD_STORE_KEY = 'prefs'
-const DEFAULTS: NeonMiamiPrefs = {
+const DEFAULTS: ShellPartyPrefs = {
   backdrop: true,
   band: true,
   motion: true,
@@ -23,7 +23,7 @@ const TICK_MS = 2_000
 // The one backdrop name the app holds for the whole session. The look (glass,
 // text colors) is sent once; the slideshow changes only the picture drawn for
 // it, so a new scene fades in without the rest of the app redrawing.
-const BACKDROP = 'neon'
+const BACKDROP = 'shell-party'
 
 // Reactions: fireworks when a task of 20 s or more finishes, a red alert when a
 // test command fails.
@@ -34,8 +34,8 @@ const TEST_COMMAND = /\b(tests?|jest|vitest|pytest|mocha|rspec|phpunit|go test|c
 
 // The person's choices, and what the backdrop shows now; drawings that read them
 // redraw when they change.
-const PREFS = { plugin: 'neon-miami', key: 'prefs' } as const
-const VIEW = { plugin: 'neon-miami', key: 'view' } as const
+const PREFS = { plugin: 'shell-party', key: 'prefs' } as const
+const VIEW = { plugin: 'shell-party', key: 'view' } as const
 
 // The words the terminal's spinner and turn footer use while the theme is on.
 const VERBS = [
@@ -82,7 +82,7 @@ const slot = (now: number, minutes: number) => Math.floor(now / (minutes * 60_00
 
 // The scene on show: with the slideshow on, it follows the wall clock, so
 // every window and every copy of the theme agrees on it.
-function sceneAt(p: NeonMiamiPrefs, now: number): SceneName {
+function sceneAt(p: ShellPartyPrefs, now: number): SceneName {
   if (!p.slideshow) return isScene(p.scene) ? p.scene : 'neon-miami'
   return SCENE_NAMES[mod(slot(now, p.minutes) + p.offset, SCENE_NAMES.length)] ?? 'neon-miami'
 }
@@ -91,8 +91,8 @@ function sceneAt(p: NeonMiamiPrefs, now: number): SceneName {
 const offsetFor = (scene: SceneName, now: number, minutes: number) =>
   mod(sceneIndex(scene) - slot(now, minutes), SCENE_NAMES.length)
 
-function normalize(value: unknown): NeonMiamiPrefs {
-  const v = typeof value === 'object' && value !== null ? (value as Partial<NeonMiamiPrefs>) : {}
+function normalize(value: unknown): ShellPartyPrefs {
+  const v = typeof value === 'object' && value !== null ? (value as Partial<ShellPartyPrefs>) : {}
   const num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x) : d)
   const bool = (x: unknown, d: boolean) => (typeof x === 'boolean' ? x : d)
   return {
@@ -108,10 +108,10 @@ function normalize(value: unknown): NeonMiamiPrefs {
 }
 
 // Copies kept in the module, for engines without $.state (older terminal builds).
-let heldPrefs: NeonMiamiPrefs = DEFAULTS
-let heldView: NeonMiamiView | undefined
+let heldPrefs: ShellPartyPrefs = DEFAULTS
+let heldView: ShellPartyView | undefined
 
-async function readPrefs($: EngineInterface): Promise<NeonMiamiPrefs> {
+async function readPrefs($: EngineInterface): Promise<ShellPartyPrefs> {
   try {
     const { value } = await $.state.get(PREFS)
     if (value !== undefined) return normalize(value)
@@ -121,7 +121,7 @@ async function readPrefs($: EngineInterface): Promise<NeonMiamiPrefs> {
   return heldPrefs
 }
 
-async function readView($: EngineInterface): Promise<NeonMiamiView | undefined> {
+async function readView($: EngineInterface): Promise<ShellPartyView | undefined> {
   try {
     const { value } = await $.state.get(VIEW)
     if (value !== undefined) return value
@@ -146,13 +146,13 @@ async function writeState($: EngineInterface, write: () => Promise<unknown>, hol
   }
 }
 
-const writePrefs = ($: EngineInterface, p: NeonMiamiPrefs) =>
+const writePrefs = ($: EngineInterface, p: ShellPartyPrefs) =>
   writeState($, () => $.state.set(PREFS, p), () => (heldPrefs = p))
-const writeView = ($: EngineInterface, v: NeonMiamiView) =>
+const writeView = ($: EngineInterface, v: ShellPartyView) =>
   writeState($, () => $.state.set(VIEW, v), () => (heldView = v))
 
 // Saves the choices for this session and the next ones.
-async function savePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
+async function savePrefs($: EngineInterface, p: ShellPartyPrefs): Promise<void> {
   await writePrefs($, p)
   try {
     await $.store.set(STORE_KEY, p)
@@ -166,8 +166,8 @@ async function savePrefs($: EngineInterface, p: NeonMiamiPrefs): Promise<void> {
 const ACCENT = '#ff7ac6'
 const PALETTE: ThemeColors = {
   v: 1,
-  id: 'neon-miami',
-  label: 'Neon Miami',
+  id: 'shell-party',
+  label: 'Shell Party',
   inputs: {
     dark: {
       'text-primary': '#f6f2ff',
@@ -193,7 +193,7 @@ const PALETTE: ThemeColors = {
 const GLASS = { blur: 0, tint: '#07050c', opacity: 0.5 }
 
 // What the app answered when the theme asked for the backdrop, and the first
-// time a surface asked to draw one: /neon shows it, and last-run.json keeps it.
+// time a surface asked to draw one: /party-shell shows it, and last-run.json keeps it.
 const report: { set?: string; asked?: string; ticks: number; changes: number; shown?: string } = { ticks: 0, changes: 0 }
 
 function describe(result: ThemeResult): string {
@@ -212,7 +212,7 @@ async function saveReport($: EngineInterface): Promise<void> {
 // Sends the look once (backdrop, glass, text colors), or clears it when the
 // person turned the backdrop off. An engine without backdrops rejects, and the
 // caller carries on.
-async function applyLook($: EngineInterface, p: NeonMiamiPrefs, isPersonAsking: boolean): Promise<string> {
+async function applyLook($: EngineInterface, p: ShellPartyPrefs, isPersonAsking: boolean): Promise<string> {
   if (!p.backdrop) {
     if (isPersonAsking) await $.theme.clear()
     return 'Backdrop off.'
@@ -239,7 +239,7 @@ async function tick($: EngineInterface): Promise<void> {
   const now = await $.clock.now()
   const v = await readView($)
   const scene = sceneAt(p, now)
-  let next: NeonMiamiView | undefined
+  let next: ShellPartyView | undefined
   if (v === undefined || v.scene !== scene) {
     next = { scene, fade: p.motion, reaction: v?.reaction, until: v?.until }
   }
@@ -277,7 +277,7 @@ function startClock($: EngineInterface): void {
       })
     })
   } catch {
-    // no timers on this engine: the scene changes with /neon next
+    // no timers on this engine: the scene changes with /party-shell next
   }
 }
 
@@ -285,16 +285,16 @@ const label = (name: string) => (isScene(name) ? SCENES[name].label : name)
 const flag = (b: boolean) => (b ? 'on' : 'off')
 
 const HELP = [
-  'Neon Miami: animated pixel-art scenes behind the chat',
-  '  /neon next                   show the next scene',
-  `  /neon scene <name>           pick one: ${SCENE_NAMES.join(', ')}`,
-  '  /neon slideshow on|off       change scenes on a timer',
-  '  /neon every <minutes>        how long each scene stays (1 to 240)',
-  '  /neon motion on|off          moving cars, rain, clouds and lights',
-  '  /neon reactions on|off       fireworks when a long task ends, an alert when tests fail',
-  '  /neon party | alert          show a reaction now',
-  '  /neon backdrop on|off        the scene behind the chat (desktop, mobile)',
-  '  /neon band on|off            the pixel skyline above the prompt (terminal)',
+  'Shell Party: animated pixel-art scenes behind the chat',
+  '  /party-shell next                   show the next scene',
+  `  /party-shell scene <name>           pick one: ${SCENE_NAMES.join(', ')}`,
+  '  /party-shell slideshow on|off       change scenes on a timer',
+  '  /party-shell every <minutes>        how long each scene stays (1 to 240)',
+  '  /party-shell motion on|off          moving cars, rain, clouds and lights',
+  '  /party-shell reactions on|off       fireworks when a long task ends, an alert when tests fail',
+  '  /party-shell party | alert          show a reaction now',
+  '  /party-shell backdrop on|off        the scene behind the chat (desktop, mobile)',
+  '  /party-shell band on|off            the pixel skyline above the prompt (terminal)',
 ].join('\n')
 
 export const register: Register = on => {
@@ -308,8 +308,8 @@ export const register: Register = on => {
     const prefs = normalize(raw)
     await savePrefs($, prefs)
     await $.command.register({
-      name: 'neon',
-      description: 'Neon Miami theme: pick a scene, run the slideshow, turn motion, reactions, the backdrop or band on and off',
+      name: 'party-shell',
+      description: 'Shell Party theme: pick a scene, run the slideshow, turn motion, reactions, the backdrop or band on and off',
       argumentHint: '[next|scene <name>|slideshow on|off|every <minutes>|motion|reactions|backdrop|band on|off|party|alert]',
     })
     await writeView($, { scene: sceneAt(prefs, await $.clock.now()), fade: prefs.motion })
@@ -347,12 +347,12 @@ export const register: Register = on => {
     return result
   })
 
-  on('command.run', { command: 'neon' }, async ($, e) => {
+  on('command.run', { command: 'party-shell' }, async ($, e) => {
     const [part, arg] = e.args.trim().toLowerCase().split(/\s+/)
     const current = await readPrefs($)
     const now = await $.clock.now()
     const onShow = sceneAt(current, now)
-    const change = async (p: NeonMiamiPrefs, text: string) => {
+    const change = async (p: ShellPartyPrefs, text: string) => {
       await savePrefs($, p)
       await tick($)
       return { text }
@@ -386,7 +386,7 @@ export const register: Register = on => {
 
     if (part === 'every') {
       const minutes = Math.round(Number(arg))
-      if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) return { text: 'Give the minutes between scenes, 1 to 240: /neon every 1' }
+      if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) return { text: 'Give the minutes between scenes, 1 to 240: /party-shell every 1' }
       return change({ ...current, minutes, offset: offsetFor(onShow, now, minutes) }, `Each scene now stays ${minutes} min.`)
     }
 

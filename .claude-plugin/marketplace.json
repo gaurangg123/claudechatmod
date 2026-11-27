@@ -3,9 +3,9 @@
   "owner": { "name": "gaurangg123" },
   "plugins": [
     {
-      "name": "neon-miami",
+      "name": "shell-party",
       "source": "./",
-      "description": "Neon Miami: a pixel-art slideshow behind the chat, a neon text palette and a terminal skyline for Claude Code"
+      "description": "Shell Party: 14 animated pixel-art scenes behind your Claude Code chat, with reactions, neon text and a terminal skyline"
     }
   ]
 }

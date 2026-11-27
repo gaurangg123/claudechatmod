@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Neon Miami for Claude Code: one-step install on macOS and Linux.
+# Shell Party for Claude Code: one-step install on macOS and Linux.
 #   curl -fsSL https://raw.githubusercontent.com/gaurangg123/claudechatmod/main/install.sh | bash
 # Installs the plugin for your user, then turns on its terminal colors.
 set -euo pipefail
 
 MARKETPLACE="gaurangg123/claudechatmod"
-THEME="custom:neon-miami:neon-miami"
+THEME="custom:shell-party:shell-party"
 
-printf '\n  \033[35mNeon Miami for Claude Code\033[0m\n\n'
+printf '\n  \033[35mShell Party for Claude Code\033[0m\n\n'
 
 if ! command -v claude >/dev/null 2>&1; then
   echo "  Claude Code is not installed (no \"claude\" command found)."
@@ -20,13 +20,13 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 printf '  \033[36m[1/2] Installing the plugin...\033[0m\n'
-claude plugin install neon-miami --marketplace "$MARKETPLACE" -y
+claude plugin install shell-party --marketplace "$MARKETPLACE" -y
 
-printf '  \033[36m[2/2] Turning on the Neon Miami terminal colors...\033[0m\n'
+printf '  \033[36m[2/2] Turning on the Shell Party terminal colors...\033[0m\n'
 CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 SETTINGS="$CONFIG_DIR/settings.json"
 mkdir -p "$CONFIG_DIR"
-[ -f "$SETTINGS" ] && cp "$SETTINGS" "$SETTINGS.before-neon-miami.bak"
+[ -f "$SETTINGS" ] && cp "$SETTINGS" "$SETTINGS.before-shell-party.bak"
 
 set_theme() {
   if command -v node >/dev/null 2>&1; then
@@ -53,11 +53,11 @@ PY
   fi
 }
 if ! set_theme; then
-  echo "  Could not update $SETTINGS. Pick \"Neon Miami\" in /theme instead."
+  echo "  Could not update $SETTINGS. Pick \"Shell Party\" in /theme instead."
 fi
 
 printf '\n  \033[32mDone. Start a new Claude Code session to see it:\033[0m\n'
 echo "    - Desktop app: the scenes appear behind the chat, changing every minute."
-echo "    - Terminal: a neon skyline above the prompt and Neon Miami colors."
-echo "    - Type /neon in a session for scenes and settings."
+echo "    - Terminal: a neon skyline above the prompt and Shell Party colors."
+echo "    - Type /party-shell in a session for scenes and settings."
 echo

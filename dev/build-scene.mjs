@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Neon Miami: builds hooks/scene.ts, the pixel-art scenes the mod draws behind
+// Shell Party: builds hooks/scene.ts, the pixel-art scenes the mod draws behind
 // the conversation (wide for the desktop app, tall for the mobile app), which
 // the slideshow rotates through. The list is BUILDERS, near the end.
 //

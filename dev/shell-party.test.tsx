@@ -1,19 +1,19 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 const backdrop = {
-  plugin: 'neon-miami',
+  plugin: 'shell-party',
   component: 'Backdrop',
   requestId: 'backdrop',
   props: {
-    scene: 'neon',
-    plugin: 'neon-miami',
+    scene: 'shell-party',
+    plugin: 'shell-party',
     glass: { blur: 0, tint: '#07050c', opacity: 0.5 },
     overrideColorScheme: 'dark',
   },
 } as const
 
 const band = {
-  plugin: 'neon-miami',
+  plugin: 'shell-party',
   component: 'AbovePrompt',
   requestId: 'band',
   props: {
@@ -33,7 +33,7 @@ type On = Parameters<Parameters<typeof test>[1]>[1]
 // Starts a desktop session with the app's answers stubbed; returns the theme.set calls.
 async function start($: Engine, on: On): Promise<unknown[]> {
   const sets: unknown[] = []
-  on('command.register', () => ({ value: { command: 'neon' } }))
+  on('command.register', () => ({ value: { command: 'party-shell' } }))
   on('theme.set', (_, e) => {
     sets.push(e)
     return { value: { isDrawn: true, requestId: 'backdrop' } }
@@ -52,14 +52,14 @@ async function drawn($: Engine): Promise<{ alt: string; source: string }> {
 }
 
 const run = ($: Engine, args: string) =>
-  $.command.run({ command: 'neon', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  $.command.run({ command: 'party-shell', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
 
 test('a session sends the look once: the backdrop, glass and a text palette', async ($, on) => {
   mock.store(on)
   mock.clock(on)
   const sets = await start($, on)
   expect(sets.length).toBe(1)
-  expect(JSON.stringify(sets[0])).toContain('"scene":"neon"')
+  expect(JSON.stringify(sets[0])).toContain('"scene":"shell-party"')
   expect(JSON.stringify(sets[0])).toContain('"text-primary"')
 })
 
@@ -79,7 +79,7 @@ test('desktop and mobile draw every scene as an animated Svg', async ($, on) => 
   }
 })
 
-test('/neon scene and /neon next change the picture, not the look', async ($, on) => {
+test('/party-shell scene and /party-shell next change the picture, not the look', async ($, on) => {
   mock.store(on)
   mock.clock(on)
   const sets = await start($, on)
@@ -119,7 +119,7 @@ test('fireworks show when a long task finishes, then go', async ($, on) => {
   expect((await drawn($)).source).not.toContain('class="fw1"')
 })
 
-test('/neon alert shows the alert, and /neon reactions off stops the fireworks', async ($, on) => {
+test('/party-shell alert shows the alert, and /party-shell reactions off stops the fireworks', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: 0 })
   on('turn.complete', (_, e) => ({ text: e.answer }))
@@ -150,10 +150,10 @@ test('the terminal band is a 4-row Raster above the prompt', async ($, on) => {
   await ui.unmount()
 })
 
-test('/neon band off removes the band, and it stays off', async ($, on) => {
+test('/party-shell band off removes the band, and it stays off', async ($, on) => {
   mock.store(on)
   mock.clock(on)
-  on('command.register', () => ({ value: { command: 'neon' } }))
+  on('command.register', () => ({ value: { command: 'party-shell' } }))
   on('theme.set', () => ({ value: { isDrawn: true, requestId: 'backdrop' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('ui.render', ($, e) => {
